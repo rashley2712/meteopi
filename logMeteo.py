@@ -86,7 +86,7 @@ if __name__ == "__main__":
 	debug = False
 	GPIO.setwarnings(True) # Ignore warning for now
 	GPIO.setmode(GPIO.BCM) # Use BCM pin numbering
-	pinID = 21
+	pinID = 16
 	cadence = args.cadence
 	GPIO.setup(pinID, GPIO.OUT, initial=GPIO.LOW) #
 	i2c = busio.I2C(board.SCL, board.SDA)

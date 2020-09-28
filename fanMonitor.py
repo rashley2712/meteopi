@@ -5,6 +5,8 @@ import time
 import datetime
 import threading
 import RPi.GPIO as GPIO # Import Raspberry Pi GPIO library
+import logging
+from systemd import journal
 
 def fanOn(pinID):
 	print("fanOn", pinID)
@@ -24,12 +26,17 @@ if __name__ == "__main__":
 	debug = False
 	GPIO.setwarnings(True) # Ignore warning for now
 	GPIO.setmode(GPIO.BCM) # Use BCM pin numbering
-	pinID = 22
+	pinID = 26
 	cadence = args.cadence
 	GPIO.setup(pinID, GPIO.OUT, initial=GPIO.LOW) #
 	cpuTempPath = "/sys/class/thermal/thermal_zone0/temp"
+	logLine = "Fan will switch on at %d degrees.\n"%args.temp
+	log = logging.getLogger('fanmonitor.service')
+	log.addHandler(journal.JournaldLogHandler())
+	log.setLevel(logging.INFO)
+	log.info(logLine)
 	
-
+	
 	while True:
 		try:
 			CPUtempFile = open(cpuTempPath, "rt")
@@ -37,10 +44,13 @@ if __name__ == "__main__":
 				cpuTemp = float(line.strip())/1000
 			CPUtempFile.close() 
 			logLine = "CPU temp %0.1f"%(cpuTemp)
+			journal.write(logLine)
+			log.info(logLine)
 			print(logLine)
 			if cpuTemp>args.temp: fanOn(pinID)
 			if cpuTemp<args.temp-5: fanOff(pinID)
 		except:
+			log.error("Could not read the CPU temperature.\n")
 			print("Could not read the CPU temperature.")
 	
 		time.sleep(cadence)
