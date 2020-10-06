@@ -9,7 +9,6 @@ import logging
 from systemd import journal
 
 def fanOn(pinID):
-	print("fanOn", pinID)
 	GPIO.output(pinID, GPIO.HIGH) # Turn on
 
 def fanOff(pinID):
@@ -44,11 +43,14 @@ if __name__ == "__main__":
 				cpuTemp = float(line.strip())/1000
 			CPUtempFile.close() 
 			logLine = "CPU temp %0.1f"%(cpuTemp)
-			journal.write(logLine)
 			log.info(logLine)
 			print(logLine)
-			if cpuTemp>args.temp: fanOn(pinID)
-			if cpuTemp<args.temp-5: fanOff(pinID)
+			if cpuTemp>args.temp: 
+				log.info("Turning fan on\n")
+				fanOn(pinID)
+			if cpuTemp<args.temp-5: 
+				log.info("Turning fan off\n")
+				fanOff(pinID)
 		except:
 			log.error("Could not read the CPU temperature.\n")
 			print("Could not read the CPU temperature.")

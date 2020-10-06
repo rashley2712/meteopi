@@ -15,17 +15,17 @@ def blinkLED():
 	blinkTime = 0.1
 	for i in range(2):
 		GPIO.output(pinID, GPIO.HIGH) # Turn on
-		time.sleep(blinkTime) # Sleep for 1 second
+		time.sleep(blinkTime) # Sleep
 		GPIO.output(pinID, GPIO.LOW) # Turn off
-		time.sleep(blinkTime) # Sleep for 1 second
+		time.sleep(blinkTime) # Sleep
 
 def errorLED():   
 	blinkTime = 0.05
 	for i in range(50):
 		GPIO.output(pinID, GPIO.HIGH) # Turn on
-		time.sleep(blinkTime) # Sleep for 1 second
+		time.sleep(blinkTime) # Sleep 
 		GPIO.output(pinID, GPIO.LOW) # Turn off
-		time.sleep(blinkTime) # Sleep for 1 second
+		time.sleep(blinkTime) # Sleep 
 
 
 class logBufferClass():
