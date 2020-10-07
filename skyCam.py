@@ -41,8 +41,8 @@ if __name__ == "__main__":
 		imageCommand.append('-n')	# No preview
 		imageCommand.append('-a')	# Add annotation ...
 		imageCommand.append('12')	# ... date and time
-		#imageCommand.append('-ex')	# Exposure mode
-		#imageCommand.append('night')	# Night time
+		imageCommand.append('-ex')	# Exposure mode
+		imageCommand.append('night')	# Night time
 		#imageCommand.append('-v') 	# Verbose
 		imageCommand.append('-o')
 		imageCommand.append('latest.jpg')
