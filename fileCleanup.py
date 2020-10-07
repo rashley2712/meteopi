@@ -21,6 +21,7 @@ if __name__ == "__main__":
 	now = datetime.datetime.now()
 	nowSeconds = datetime.datetime.timestamp(now)
 	if debug: print("Now is:", now)
+	print("Running cleanup operation on %s at %s"%(args.path, now))
 	if debug: print("Now is:", nowSeconds)
 	fileList = os.listdir(args.path)
 	fileData = []
