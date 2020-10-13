@@ -35,6 +35,7 @@ if __name__ == "__main__":
 	log.setLevel(logging.INFO)
 	log.info(logLine)
 	
+	fanStatus = False
 	
 	while True:
 		try:
@@ -46,11 +47,15 @@ if __name__ == "__main__":
 			log.info(logLine)
 			print(logLine)
 			if cpuTemp>args.temp: 
-				log.info("Turning fan on\n")
-				fanOn(pinID)
+				if not fanStatus: 
+					log.info("Turning fan on\n")
+					fanOn(pinID)
+					fanStatus = True
 			if cpuTemp<args.temp-5: 
-				log.info("Turning fan off\n")
-				fanOff(pinID)
+				if fanStatus:
+					log.info("Turning fan off\n")
+					fanOff(pinID)
+					fanStatus = False
 		except:
 			log.error("Could not read the CPU temperature.\n")
 			print("Could not read the CPU temperature.")
