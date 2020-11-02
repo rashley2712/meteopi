@@ -48,9 +48,9 @@ if __name__ == "__main__":
 	meteoLocation.lon = '342.12'
 	meteoLocation.lat = '28.76'
 	meteoLocation.elevation = 2326
-	meteoLocation.lon = '-17.7742491'
-	meteoLocation.lat = '28.6468866'
-	meteoLocation.elevation = 281
+	#meteoLocation.lon = '-17.7742491'
+	#meteoLocation.lat = '28.6468866'
+	#meteoLocation.elevation = 281
 	d = datetime.datetime.utcnow()
 	localTime = ephem.localtime(ephem.Date(d))
 	print(localTime)

@@ -103,7 +103,7 @@ if __name__ == "__main__":
 	GPIO.setmode(GPIO.BCM) # Use BCM pin numbering
 	pinID = 16
 	cadence = args.cadence
-	GPIO.setup(pinID, GPIO.OUT, initial=GPIO.LOW) #
+	GPIO.setup(pinID, GPIO.OUT, initial=GPIO.HIGH) #
 	i2c = busio.I2C(board.SCL, board.SDA)
 	bme280 = adafruit_bme280.Adafruit_BME280_I2C(i2c, address = 0x76)
 	logBuffer = []
@@ -122,7 +122,7 @@ if __name__ == "__main__":
 		logFile = open("/var/log/meteo.log", "at")
 	except PermissionError:
 		logFile = open("debug.log", "at")
-		print("No running as root, so can't write to /var/log. Creating a local 'debug.log' file.")
+		print("Not running as root, so can't write to /var/log. Creating a local 'debug.log' file.")
 		debug = True
 		
 	logBuffer = logBufferClass(debug=debug)
@@ -137,8 +137,12 @@ if __name__ == "__main__":
 				cpuTemp = float(line.strip())
 			CPUtempFile.close() 
 			# Get the IR detector temperatures
-			IRsky = getIRSky()
-			IRambient = getIRAmbient()
+			try: 
+				IRsky = getIRSky()
+				IRambient = getIRAmbient()
+			except:
+				IRsky = -100
+				IRambient = -100
 			logLine = "%s|%0.1f|%0.1f|%0.1f|%0.1f|%0.1f|%0.1f"%(str(currentTime), bme280.temperature, bme280.humidity, bme280.pressure, cpuTemp/1000, IRambient, IRsky)
 			logBuffer.addEntry(logLine)
 			if args.service: log.info(logLine)

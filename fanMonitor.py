@@ -55,7 +55,7 @@ if __name__ == "__main__":
 				if fanStatus:
 					log.info("Turning fan off\n")
 					fanOff(pinID)
-					fanStatus = False
+				fanStatus = False
 		except:
 			log.error("Could not read the CPU temperature.\n")
 			print("Could not read the CPU temperature.")
