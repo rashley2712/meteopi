@@ -25,7 +25,7 @@ if __name__ == "__main__":
 	debug = False
 	GPIO.setwarnings(True) # Ignore warning for now
 	GPIO.setmode(GPIO.BCM) # Use BCM pin numbering
-	pinID = 26
+	pinID = 23
 	cadence = args.cadence
 	GPIO.setup(pinID, GPIO.OUT, initial=GPIO.LOW) #
 	cpuTempPath = "/sys/class/thermal/thermal_zone0/temp"

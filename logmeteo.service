@@ -1,0 +1,11 @@
+[Unit]
+Description=Logging of the meteo information
+After=multi-user.target
+
+[Service]
+Type=idle
+ExecStart=/usr/bin/python /home/pi/share/meteopi/logMeteo.py -c 120 -u 300 -s
+
+[Install]
+WantedBy=multi-user.target
+

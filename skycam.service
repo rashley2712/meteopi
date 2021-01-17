@@ -1,0 +1,11 @@
+[Unit]
+Description=Camera control service for Skycam
+After=multi-user.target
+
+[Service]
+Type=idle
+ExecStart=/usr/bin/python /home/pi/share/meteopi/skyCam.py -c 300 -s
+
+[Install]
+WantedBy=multi-user.target
+

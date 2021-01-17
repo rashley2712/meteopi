@@ -22,7 +22,7 @@ def blinkLED():
 			else: 
 				GPIO.output(pinID, GPIO.LOW) # Turn off
 			time.sleep(status[1]) # Sleep
-
+		
 patterns = { "heartbeat" : [ [1, 0.02], [0, 7] ],
 			 "error"     : [ [1, 0.01], [0, 0.09] ], 
 			 "off"       : [ [0, 5] ], 
@@ -31,16 +31,16 @@ patterns = { "heartbeat" : [ [1, 0.02], [0, 7] ],
 
 if __name__ == "__main__":
 	parser = argparse.ArgumentParser(description='Controls the LED status light.')
-	parser.add_argument('-c', '--cadence', type=int, default=1, help='Cadence in seconds.' )
+	parser.add_argument('-c', '--cadence', type=int, default=5, help='Cadence in seconds.' )
 	parser.add_argument('-s', '--service', action="store_true", default=False, help='Specify this option if running as a service.' )
 
 	args = parser.parse_args()
 
 	GPIO.setwarnings(True) # Ignore warning for now
 	GPIO.setmode(GPIO.BCM) # Use BCM pin numbering
-	pinID = 16
+	pinID = 22
 	cadence = args.cadence
-	GPIO.setup(pinID, GPIO.OUT, initial=GPIO.HIGH) #
+	GPIO.setup(pinID, GPIO.OUT, initial=GPIO.LOW) #
 	
 	if args.service:
 		log = logging.getLogger('LEDstatus.service')
@@ -54,7 +54,7 @@ if __name__ == "__main__":
 		statusFile = open("/var/log/status.led", "rt")
 		line = statusFile.readline().strip()
 		statusFile.close()
-	except:
+	except OSError as e:
 		print("No /var/log/status.led file found.")
 		sys.exit()
 	
@@ -69,13 +69,14 @@ if __name__ == "__main__":
 		sys.exit()
 	
 	while True:
+		time.sleep(cadence)
 		try:
 			statusFile = open("/var/log/status.led", "rt")
 			line = statusFile.readline().strip()
 			statusFile.close()
-		except:
+		except OSError as e:
 			print("No /var/log/status.led file found.")
-
+			
 		try:
 			pattern = patterns[line]
 			if pattern==currentPattern: continue
@@ -84,6 +85,6 @@ if __name__ == "__main__":
 				currentPattern = pattern
 		except:
 			print("Status %s unrecognised"%line)
-			
-		time.sleep(cadence)
-
+		
+	
+		

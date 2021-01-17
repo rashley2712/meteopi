@@ -1,0 +1,11 @@
+[Unit]
+Description=LED status controller
+After=multi-user.target
+
+[Service]
+Type=idle
+ExecStart=/usr/bin/python /home/pi/share/meteopi/ledStatus.py -s
+
+[Install]
+WantedBy=multi-user.target
+
