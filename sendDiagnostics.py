@@ -3,16 +3,16 @@ import requests
 import argparse
 import time
 import datetime
-import logging
 import socket
-from systemd import journal
 import sys
 import json
 import shutil
+import os
 
 
 def upload(diagnostics):
-	uploadDestination = "http://astrofarm.local/diagnostics"
+	global baseURL
+	uploadDestination = os.path.join(baseURL, "diagnostics")
 	success = False
 	print("Uploading to ", uploadDestination)
 	try: 
@@ -26,16 +26,27 @@ def upload(diagnostics):
 
 if __name__ == "__main__":
 	parser = argparse.ArgumentParser(description='Reports to the astrofarm webserver some diagnostic information.')
-	parser.add_argument('-c', '--cadence', type=int, default=10, help='Cadence in seconds.' )
+	parser.add_argument('-c', '--config', type=str, default='meteopi.cfg', help='Config file.' )
+	parser.add_argument('-w', '--wait', action="store_true", default=False, help='Wait for 1 minute before trying to send diagnostic information.')
 	parser.add_argument('-s', '--service', action="store_true", default=False, help='Specify this option if running as a service.' )
-	parser.add_argument('-d', '--debug', action="store_true", default=False, help='Give more debug information.') 
 	args = parser.parse_args()
+	if args.wait:
+		time.sleep(60)
 
-	debug = args.debug
+	configFile = open(args.config, 'rt')
+	config = json.loads(configFile.read())
+	print(config)
+	baseURL = config['baseURL']
 
-	
 	diagnostics = {}
 	
+	if args.service:
+		original_stdout = sys.stdout # Save a reference to the original standard output
+		original_stderr = sys.stderr # Save a reference to the original standard error
+		logFile = open('/var/log/diagnostic.log', 'a+')
+		sys.stdout = logFile
+		sys.stderr = logFile
+    
 	# Get date-time
 	now = datetime.datetime.utcnow()
 	print(now)
@@ -80,7 +91,10 @@ if __name__ == "__main__":
 	
 	upload(diagnostics)
 	
-	
+	if args.service:
+		sys.stdout = original_stdout # Reset the standard output to its original value
+		sys.stderr = original_stderr # Reset the standard output to its original value
+		logFile.close()
 	sys.exit()
 	
 	
