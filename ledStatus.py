@@ -38,7 +38,7 @@ if __name__ == "__main__":
 
 	GPIO.setwarnings(True) # Ignore warning for now
 	GPIO.setmode(GPIO.BCM) # Use BCM pin numbering
-	pinID = 22
+	pinID = 17
 	cadence = args.cadence
 	GPIO.setup(pinID, GPIO.OUT, initial=GPIO.LOW) #
 	
