@@ -10,7 +10,7 @@ from systemd import journal
 import ephem
 
 def uploadToServer(imageFilename):
-	destinationURL = 'http://astrofarm.eu/imageUpload'
+	destinationURL = 'https://astrofarm.eu/imageUpload'
 	files = {'skycam': open(imageFilename, 'rb')}
 	try: response = requests.post(destinationURL, files=files)
 	except Exception as e: 
@@ -45,9 +45,9 @@ if __name__ == "__main__":
 	meteoLocation.lon = '-3.5262707'
 	meteoLocation.lat = '40.3719808'
 	meteoLocation.elevation = 900
-	meteoLocation.lon = '342.12'
-	meteoLocation.lat = '28.76'
-	meteoLocation.elevation = 2326
+	#meteoLocation.lon = '342.12'
+	# meteoLocation.lat = '28.76'
+	# meteoLocation.elevation = 2326
 	#meteoLocation.lon = '-17.7742491'
 	#meteoLocation.lat = '28.6468866'
 	#meteoLocation.elevation = 281
@@ -72,7 +72,7 @@ if __name__ == "__main__":
 		if altitude<-5: 
 			log.info("will take night exposure...")
 			night = True
-		nightOptions = ['-ex', 'night', '-ISO', '800', '-ss', '6000000']
+		nightOptions = ['-ex', 'night', '-ISO', '800', '-ss', '600000']
 		# Take an image
 		imageCommand = ['raspistill']
 		imageCommand.append('-n')	# No preview

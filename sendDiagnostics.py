@@ -8,6 +8,7 @@ import sys
 import json
 import shutil
 import os
+import uuid
 
 
 def upload(diagnostics):
@@ -61,7 +62,11 @@ if __name__ == "__main__":
 	s.connect(("8.8.8.8", 80))
 	ipAddress = s.getsockname()[0]
 	diagnostics['localip'] = ipAddress
-	
+
+	# Get mac address
+	macAddress = ':'.join(['{:02x}'.format((uuid.getnode() >> ele) & 0xff) for ele in range(0,8*6,8)][::-1])
+	diagnostics['macaddress'] = macAddress
+
 	# Get uptime
 	with open('/proc/uptime', 'r') as f:
 		uptime_seconds = float(f.readline().split()[0])
