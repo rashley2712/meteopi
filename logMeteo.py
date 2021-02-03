@@ -35,9 +35,8 @@ class logBufferClass():
 		self.filename = "/var/log/logbuffer.tmp"
 		if debug: self.filename="logbuffer.tmp"
 		self.logData = []
-		self.uploadDestination = "http://astrofarm.eu/upload"
+		self.uploadDestination = "https://www.astrofarm.eu/upload"
 		if debug: self.uploadDestination = "http://astrofarm.local/upload"
-		self.load()
 		
 	def addEntry(self, logLine):
 		self.logData.append(logLine)
@@ -45,10 +44,12 @@ class logBufferClass():
 		return len(self.logData)
 	
 	def load(self):
-		loadFile = open(self.filename, "rt")
-		for line in loadFile:
-			self.logData.append(line)
+		loadFile = open(self.filename, "r")
+		data = loadFile.readlines()
+		for d in data:
+			self.logData.append(d.strip())
 		loadFile.close()
+	
 		
 	def dump(self):
 		dumpFile = open(self.filename, "wt")
@@ -105,7 +106,7 @@ if __name__ == "__main__":
 	cadence = args.cadence
 	GPIO.setup(pinID, GPIO.OUT, initial=GPIO.HIGH) #
 	i2c = busio.I2C(board.SCL, board.SDA)
-	bme280 = adafruit_bme280.Adafruit_BME280_I2C(i2c, address = 0x76)
+	bme280 = adafruit_bme280.Adafruit_BME280_I2C(i2c, address = 0x77)
 	logBuffer = []
 	lastUpload = datetime.datetime.now()
 	uploadCadence = args.upload
@@ -125,7 +126,10 @@ if __name__ == "__main__":
 		print("Not running as root, so can't write to /var/log. Creating a local 'debug.log' file.")
 		debug = True
 		
+	print("Creating logBuffer")
 	logBuffer = logBufferClass(debug=debug)
+	print("Finished creating logBuffer")
+	logBuffer.load()
 	
 	errorFlash = None
 	while True:
