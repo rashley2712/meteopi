@@ -93,7 +93,7 @@ if __name__ == "__main__":
 		currentTime = datetime.datetime.now()
 		timeString = datetime.datetime.now().strftime("%Y%m%d_%H%M%S")
 		destinationFilename = os.path.join(destinationPath, timeString + ".jpg")
-		os.rename("latest.jpg", destinationFilename);
+		os.rename("latest.jpg", destinationFilename)
 		if args.service: log.info("written image to %s\n"%destinationFilename)
 		else: 
 			print("written image to %s"%destinationFilename)
