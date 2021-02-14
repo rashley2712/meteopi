@@ -9,6 +9,7 @@ import json
 import shutil
 import os
 import uuid
+import subprocess
 
 
 def upload(diagnostics):
@@ -62,6 +63,14 @@ if __name__ == "__main__":
 	s.connect(("8.8.8.8", 80))
 	ipAddress = s.getsockname()[0]
 	diagnostics['localip'] = ipAddress
+
+	# Get WIFI SSID
+	output = subprocess.check_output(['sudo', 'iwgetid']).decode('UTF-8')
+	try: 
+		ssid = output.split('"')[1]
+	except:
+		ssid = "none"	
+	diagnostics['SSID'] = ssid
 
 	# Get mac address
 	macAddress = ':'.join(['{:02x}'.format((uuid.getnode() >> ele) & 0xff) for ele in range(0,8*6,8)][::-1])
