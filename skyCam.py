@@ -6,6 +6,7 @@ import datetime
 import subprocess, os, sys
 import logging
 from systemd import journal
+import RPi.GPIO as GPIO # Import Raspberry Pi GPIO library
 import ephem
 import json
 
@@ -15,6 +16,31 @@ def fetchCameraConfig(URL):
 	information("%s has the following parameters for the camera"%URL)
 	information(str(data))
 	return data
+
+
+def testLED():   
+	blinkTime = 0.05
+	pinID = 47
+	GPIO.setmode(GPIO.BCM) # Use BCM pin numbering
+	GPIO.setwarnings(False) # Ignore warning for now	
+	GPIO.setup(pinID, GPIO.OUT, initial=GPIO.LOW) #
+	
+	GPIO.output(pinID, GPIO.HIGH) # Turn on
+	for i in range(20):
+		GPIO.output(pinID, GPIO.HIGH) # Turn on
+		time.sleep(blinkTime) # Sleep 
+		GPIO.output(pinID, GPIO.LOW) # Turn off
+		time.sleep(blinkTime) # Sleep 
+
+
+def offLED():   
+	pinID = 47
+	GPIO.output(pinID, GPIO.HIGH) # Turn LED off
+
+def onLED():   
+	pinID = 47
+	GPIO.output(pinID, GPIO.LOW) # Turn LED on
+
 
 def isNight(locationInfo): 
 	night = False
@@ -26,7 +52,7 @@ def isNight(locationInfo):
 	localTime = ephem.localtime(ephem.Date(d))
 	meteoLocation.date = ephem.Date(d)
 	sun = ephem.Sun(meteoLocation)
-	information("Sun azimuth: %s altitude: %s"%(sun.az, sun.alt))
+	# information("Sun azimuth: %s altitude: %s"%(sun.az, sun.alt))
 	altitude = sun.alt*180/3.14125
 	information("Sun altitude is: %.2f"%altitude)
 	if altitude<-5: 
@@ -36,22 +62,25 @@ def isNight(locationInfo):
 	return night
 
 
-def uploadToServer(imageFilename):
-	destinationURL = 'https://www.astrofarm.eu/imageUpload'
+def uploadToServer(imageFilename, URL):
+	destinationURL = URL
 	files = {'skycam': open(imageFilename, 'rb')}
-	try: response = requests.post(destinationURL, files=files)
+	try:
+		response = requests.post(destinationURL, files=files)
+		information("response code: " + str(response.status_code))
 	except Exception as e: 
-		 if args.service: log.error("Failed to upload image to %s\n"%destinationURL)
-		 print(e)
-		 return 
-	if args.service: log.info("Uploaded image to %s\n"%destinationURL) 
-	else: print(response)
+		if args.service: log.error("Failed to upload image to %s\n"%destinationURL)
+		information("error: " + repr(e))
+		return 
+	information("Uploaded image to %s\n"%destinationURL) 
+	return
 
 def information(message):
 	global log
 	if service: log.info(message)
 	else: 
 		print(message)
+	return
 
 if __name__ == "__main__":
 	parser = argparse.ArgumentParser(description='Runs the camera to capture a still image.')
@@ -59,6 +88,7 @@ if __name__ == "__main__":
 	parser.add_argument('-u', '--upload', type=int, default=300, help='Upload cadence in seconds.' )
 	parser.add_argument('-c', '--config', type=str, default='meteopi.cfg', help='Config file.' )
 	parser.add_argument('-s', '--service', action="store_true", default=False, help='Specify this option if running as a service.' )
+	parser.add_argument('--test', action="store_true", default=False, help='Test mode. Don\'t upload images.' )
 	parser.add_argument('-x', '--exit', action="store_true", default=False, help='Take one exposure and then exit.' )
 	args = parser.parse_args()
 	cadence = args.cadence
@@ -81,25 +111,28 @@ if __name__ == "__main__":
 
 	information("Location is: " + str(locationInfo))
 
+	testLED()
+
 	while True:
 		beginning = datetime.datetime.now()
 		cameraConfig = fetchCameraConfig(config['cameraparameterURL'])
 		night = isNight(locationInfo)
-
+		
 		# Execute raspistill and time the execution
 		imageCommand = ['raspistill']
+		try: 
+			cadence = float(cameraConfig['cadence'])
+		except:
+			cadence = args.cadence
+		
 		if night: 
 			try:
 				expTime = float(cameraConfig['expTime'])
 			except: 
 				expTime = 10
-			try: 
-				cadence = float(cameraConfig['cadence'])
-			except:
-				cadence = args.cadence
-
+		
 			timeMicros = expTime*1E6
-			cmdString = "-t 10 -md 3 -st -ex off -ag 1 -ss %.0f"%timeMicros
+			cmdString = cameraConfig['nightParams'] + " -ss %.0f"%timeMicros
 			for piece in cmdString.split(" "):
 				imageCommand.append(piece)
 			imageCommand.append('-ae')
@@ -112,6 +145,11 @@ if __name__ == "__main__":
 		imageCommand.append('12')	# ... date and time
 		imageCommand.append('-a')	# Add annotation ...
 		imageCommand.append('%Y-%m-%d %X')	# ... date and time
+		if len(cameraConfig['annotation']) > 0:
+			information("Custom annotation requested: " + cameraConfig['annotation'])
+			imageCommand.append('-a')	# Add annotation ...
+			imageCommand.append(cameraConfig['annotation'])	# custom text 
+			
 		imageCommand.append('-o')	
 		imageCommand.append('/tmp/camera.jpg')
 
@@ -119,9 +157,11 @@ if __name__ == "__main__":
 		for piece in imageCommand:
 			cmdString+= piece + " "
 		information("cmdString: %s"%cmdString)
+		offLED()
 		start = datetime.datetime.now()
 		subprocess.call(imageCommand)	
 		end = datetime.datetime.now()
+		onLED()
 		duration = end - start
 		midpoint = start + duration/2
 		information("time elapsed %s"%str(duration))
@@ -130,7 +170,7 @@ if __name__ == "__main__":
 		destinationFilename = os.path.join(config['cameraoutputpath'], timeString + ".jpg")
 		information("moving the capture to %s"%destinationFilename)
 		os.rename("/tmp/camera.jpg", destinationFilename)
-		uploadToServer(destinationFilename)
+		if not args.test: uploadToServer(destinationFilename, config['camerauploadURL'])
 		if args.exit: sys.exit()
 
 		end = datetime.datetime.now()
@@ -144,83 +184,3 @@ if __name__ == "__main__":
 
 
 	sys.exit()
-	debug = False
-	cadence = args.cadence
-	uploadCadence = args.upload
-	destinationPath = "/home/pi/share/camera"
-	
-	if args.service:
-		log = logging.getLogger('skycam.service')
-		log.addHandler(journal.JournaldLogHandler())
-		log.setLevel(logging.INFO)
-		logLine = "Starting the skycam with a cadence of %d seconds"%cadence
-		log.info(logLine)
-	
-	sun = ephem.Sun()
-	meteoLocation = ephem.Observer()
-	#meteoLocation.lon = '-3.5262707'
-	#meteoLocation.lat = '40.3719808'
-	#meteoLocation.elevation = 900
-	#meteoLocation.lon = '342.12'
-	# meteoLocation.lat = '28.76'
-	meteoLocation.elevation = 2326
-	meteoLocation.lon = '-17.7742491'
-	meteoLocation.lat = '28.6468866'
-	#meteoLocation.elevation = 281
-	d = datetime.datetime.utcnow()
-	localTime = ephem.localtime(ephem.Date(d))
-	print(localTime)
-	meteoLocation.date = ephem.Date(d)
-	sun = ephem.Sun(meteoLocation)
-	
-	while True:
-		# Get the sun's current altitude
-		night = False
-		d = datetime.datetime.utcnow()
-		meteoLocation.date = ephem.Date(d)
-		sun = ephem.Sun(meteoLocation)
-		print(sun.az, sun.alt)
-		altitude = sun.alt*180/3.14125
-		if args.service:
-			log.info("Sun altitude is: %.2f\n"%altitude)
-		else: 
-			print("Sun altitude is: %.2f"%altitude)
-		if altitude<-5: 
-			log.info("will take night exposure...")
-			night = True
-		nightExposureSecs = 100
-		nightExposureString = str(nightExposureSecs * 1E6)
-		nightOptions = ['-ex', 'verylong', '-ISO', '400', '-ss', nightExposureString, '-md', '3', '-bm', '-ag', '1', '-st']
-		# Take an image
-		imageCommand = ['raspistill']
-		imageCommand.append('-n')	# No preview
-		imageCommand.append('-ae')
-		if not night: imageCommand.append('64,0x000000,0xffffff')
-		else: imageCommand.append('64,0xffffff,0x000000')
-		imageCommand.append('-a')	# Add annotation ...
-		imageCommand.append('12')	# ... date and time
-		imageCommand.append('-a')	# Add annotation ...
-		imageCommand.append('"%Y-%m-%d %X"')	# ... date and time
-		if night:
-			imageCommand = imageCommand + nightOptions
-		imageCommand.append('-r')
-		imageCommand.append('-o')
-		imageCommand.append('latest.jpg')
-		cmdString = ""		
-		for piece in imageCommand:
-			cmdString+=piece + " "
-		if args.service: log.info(cmdString)
-		if args.service: log.info(imageCommand)
-		else: print(imageCommand)
-		subprocess.call(imageCommand)
-		currentTime = datetime.datetime.now()
-		timeString = datetime.datetime.now().strftime("%Y%m%d_%H%M%S")
-		destinationFilename = os.path.join(destinationPath, timeString + ".jpg")
-		os.rename("latest.jpg", destinationFilename)
-		if args.service: log.info("written image to %s\n"%destinationFilename)
-		else: 
-			print("written image to %s"%destinationFilename)
-		uploadToServer(destinationFilename)
-		time.sleep(cadence)
-	
-	
