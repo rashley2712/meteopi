@@ -160,9 +160,9 @@ if __name__ == "__main__":
 		#imageCommand.append('12')	# ... date and time
 		#imageCommand.append('-a')	# Add annotation ...
 		#imageCommand.append('%Y-%m-%d %X')	# ... date and time
-		extraAnnotation = timeString + " "
-		if night: extraAnnotation+= "N "
-		extraAnnotation+= "sun: %.0f, moon: %.0f (%.0f%%)"%(ephemeris['sunElevation'], ephemeris['moonElevation'], ephemeris['moonIllumination'])
+		extraAnnotation = timeString
+		if night: extraAnnotation+= " N %ds"%int(expTime)
+		extraAnnotation+= " sun: %.0f moon: %.0f (%.0f%%)"%(ephemeris['sunElevation'], ephemeris['moonElevation'], ephemeris['moonIllumination'])
 		if len(cameraConfig['annotation']) > 0:
 			information("Custom annotation requested: " + cameraConfig['annotation'])
 			extraAnnotation+= " " + cameraConfig['annotation']
