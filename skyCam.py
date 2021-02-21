@@ -42,7 +42,7 @@ def onLED():
 	GPIO.output(pinID, GPIO.LOW) # Turn LED on
 
 
-def isNight(locationInfo): 
+def getSunMoon(locationInfo): 
 	night = False
 	meteoLocation = ephem.Observer()
 	meteoLocation.lon = str(locationInfo['longitude'])
@@ -50,16 +50,31 @@ def isNight(locationInfo):
 	meteoLocation.elevation = locationInfo['elevation']
 	d = datetime.datetime.utcnow()
 	localTime = ephem.localtime(ephem.Date(d))
+	information("local time: " + str(localTime))
+	information("universal time: " + str(d))
 	meteoLocation.date = ephem.Date(d)
 	sun = ephem.Sun(meteoLocation)
+	moon = ephem.Moon(meteoLocation)
 	# information("Sun azimuth: %s altitude: %s"%(sun.az, sun.alt))
 	altitude = sun.alt*180/3.14125
-	information("Sun altitude is: %.2f"%altitude)
+	information("Sun elevation is: %.2f"%altitude)
+	currentDate = ephem.Date(d)
+	timeToNewMoon = ephem.next_new_moon(currentDate) - currentDate
+	timeSinceLastNewMoon = currentDate - ephem.previous_new_moon(currentDate)
+	period = timeToNewMoon + timeSinceLastNewMoon
+	phase = timeSinceLastNewMoon / period
+	information("Moon elevation is: %.2f and illumination is: %.2f"%(moon.alt*180/3.14125, moon.phase))
 	if altitude<-5: 
 		information("will take night exposure...")
 		night = True
 		
-	return night
+	results = {
+		"night" : night,
+		"sunElevation" : altitude,
+		"moonIllumination": moon.phase, 
+		"moonElevation": (moon.alt*180/3.14125)
+	}
+	return results
 
 
 def uploadToServer(imageFilename, URL):
@@ -85,7 +100,6 @@ def information(message):
 if __name__ == "__main__":
 	parser = argparse.ArgumentParser(description='Runs the camera to capture a still image.')
 	parser.add_argument('-t', '--cadence', type=int, default=180, help='Cadence in seconds.' )
-	parser.add_argument('-u', '--upload', type=int, default=300, help='Upload cadence in seconds.' )
 	parser.add_argument('-c', '--config', type=str, default='meteopi.cfg', help='Config file.' )
 	parser.add_argument('-s', '--service', action="store_true", default=False, help='Specify this option if running as a service.' )
 	parser.add_argument('--test', action="store_true", default=False, help='Test mode. Don\'t upload images.' )
@@ -116,8 +130,9 @@ if __name__ == "__main__":
 	while True:
 		beginning = datetime.datetime.now()
 		cameraConfig = fetchCameraConfig(config['cameraparameterURL'])
-		night = isNight(locationInfo)
-		
+		ephemeris = getSunMoon(locationInfo)
+		night = ephemeris['night']
+		timeString = beginning.strftime("%Y%m%d_%H%M%S")
 		# Execute raspistill and time the execution
 		imageCommand = ['raspistill']
 		try: 
@@ -141,14 +156,20 @@ if __name__ == "__main__":
 			imageCommand.append('-ae')
 			imageCommand.append('64,0x000000,0xffffff')
 
-		imageCommand.append('-a')	# Add annotation ...
-		imageCommand.append('12')	# ... date and time
-		imageCommand.append('-a')	# Add annotation ...
-		imageCommand.append('%Y-%m-%d %X')	# ... date and time
+		#imageCommand.append('-a')	# Add annotation ...
+		#imageCommand.append('12')	# ... date and time
+		#imageCommand.append('-a')	# Add annotation ...
+		#imageCommand.append('%Y-%m-%d %X')	# ... date and time
+		extraAnnotation = timeString + " "
+		if night: extraAnnotation+= "N "
+		extraAnnotation+= "sun: %.0f, moon: %.0f (%.0f%%)"%(ephemeris['sunElevation'], ephemeris['moonElevation'], ephemeris['moonIllumination'])
 		if len(cameraConfig['annotation']) > 0:
 			information("Custom annotation requested: " + cameraConfig['annotation'])
-			imageCommand.append('-a')	# Add annotation ...
-			imageCommand.append(cameraConfig['annotation'])	# custom text 
+			extraAnnotation+= " " + cameraConfig['annotation']
+		# extraAnnotation = "\"" + extraAnnotation + "\""
+		
+		imageCommand.append('-a')	# Add annotation ...
+		imageCommand.append(extraAnnotation)	# custom text 
 			
 		imageCommand.append('-o')	
 		imageCommand.append('/tmp/camera.jpg')
@@ -166,7 +187,6 @@ if __name__ == "__main__":
 		midpoint = start + duration/2
 		information("time elapsed %s"%str(duration))
 		
-		timeString = midpoint.strftime("%Y%m%d_%H%M%S")
 		destinationFilename = os.path.join(config['cameraoutputpath'], timeString + ".jpg")
 		information("moving the capture to %s"%destinationFilename)
 		os.rename("/tmp/camera.jpg", destinationFilename)
