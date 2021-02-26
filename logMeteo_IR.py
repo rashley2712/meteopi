@@ -131,7 +131,7 @@ if __name__ == "__main__":
 	logBuffer = logBufferClass(debug=debug)
 	print("Finished creating logBuffer")
 	logBuffer.load()
-	
+	IRdisabled = False
 	errorFlash = None
 	while True:
 		currentTime = datetime.datetime.now()
@@ -144,10 +144,13 @@ if __name__ == "__main__":
 			# Get the hostname of this device
 			hostname = socket.gethostname()
 			# Get the IR detector temperatures
-			try: 
-				IRsky = getIRSky()
-				IRambient = getIRAmbient()
-			except:
+			if not IRdisabled: 
+				try: 
+					IRsky = getIRSky()
+					IRambient = getIRAmbient()
+				except:
+					IRdisabled = True
+			if IRdisabled: 
 				IRsky = -100
 				IRambient = -100
 			logLine = "%s|%s|%0.1f|%0.1f|%0.1f|%0.1f|%0.1f|%0.1f"%(str(currentTime), hostname, bme280.temperature, bme280.humidity, bme280.pressure, cpuTemp/1000, IRambient, IRsky)
