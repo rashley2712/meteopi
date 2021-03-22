@@ -17,7 +17,7 @@ from systemd import journal
 class logBufferClass():
 	def __init__(self, debug=False):
 		self.filename = "/var/log/logbuffer.tmp"
-		if debug: self.filename="logbuffer.tmp"
+		if debug: self.filename="/var/log/logbuffer.tmp"
 		self.logData = []
 		self.uploadDestination = "https://www.astrofarm.eu/upload"
 		if debug: self.uploadDestination = "http://astrofarm.local:3001/upload"
@@ -38,7 +38,7 @@ class logBufferClass():
 	def dump(self):
 		dumpFile = open(self.filename, "wt")
 		for item in self.logData:
-			dumpFile.write(item + "\n")
+			dumpFile.write(item.strip() + "\n")
 		dumpFile.close()
 		
 	def clear(self):
@@ -61,6 +61,14 @@ class logBufferClass():
 			print(e)
 				
 		return success
+
+def information(message):
+	global log
+	if service: log.info(message)
+	else: 
+		print(message)
+	return
+
 		
 if __name__ == "__main__":
 	parser = argparse.ArgumentParser(description='Polls the BME 280 sensor(s) for temperature, pressure and relative humidity.')
@@ -68,39 +76,41 @@ if __name__ == "__main__":
 	parser.add_argument('-t', '--cadence', type=int, default=60, help='Cadence in seconds.' )
 	parser.add_argument('-u', '--upload', type=int, default=300, help='Upload cadence in seconds.' )
 	parser.add_argument('-s', '--service', action="store_true", default=False, help='Specify this option if running as a service.' )
+	args = parser.parse_args()	
+	cadence = args.cadence
+	upload = args.upload
+	service = args.service
+	debug = False
 
-	args = parser.parse_args()
 	configFile = open(args.config, 'rt')
 	config = json.loads(configFile.read())
 	print(config)
-	debug = True
-	GPIO.setwarnings(True) # Ignore warning for now
-	GPIO.setmode(GPIO.BCM) # Use BCM pin numbering
-	pinID = 16
-	cadence = args.cadence
-	GPIO.setup(pinID, GPIO.OUT, initial=GPIO.HIGH) #
+	
+	if service:
+		log = logging.getLogger('logmeteo.service')
+		log.addHandler(journal.JournaldLogHandler())
+		log.setLevel(logging.INFO)
+		
+	information("Started logging of the meteo devices with a cadence of %d seconds and upload cadence of %d seconds."%(cadence, upload))
+		
 	i2c = busio.I2C(board.SCL, board.SDA)
 	bme280addresses = [config['exteriorsensoraddress'], config['domesensoraddress']] 
-	if debug: print("Temperature sensors on I2C at", bme280addresses)
+	if debug: information("Temperature sensors on I2C at %s"%str(bme280addresses))
 	bme280 = []
 	for address in bme280addresses:
 		decAddress = int(address, 16)
-		print("dec: ", decAddress)
-		bme280.append(adafruit_bme280.Adafruit_BME280_I2C(i2c, address = 0x76))
+		try:
+			bme280.append(adafruit_bme280.Adafruit_BME280_I2C(i2c, address = decAddress))
+		except:
+			information("Sensor defective at address %s"%address)
+			bme280.append("null")
 
-	bme280 = adafruit_bme280.Adafruit_BME280_I2C(i2c, address=0x76)
 	logBuffer = []
 	lastUpload = datetime.datetime.now()
 	uploadCadence = args.upload
 	cpuTempPath = "/sys/class/thermal/thermal_zone0/temp"
 	
-	if args.service:
-		log = logging.getLogger('logmeteo.service')
-		log.addHandler(journal.JournaldLogHandler())
-		log.setLevel(logging.INFO)
-		logLine = "Starting the logmeteo service with a cadence of %d seconds"%cadence
-		log.info(logLine)
-
+	
 	try: 
 		logFile = open("/var/log/meteo.log", "at")
 	except PermissionError:
@@ -114,43 +124,50 @@ if __name__ == "__main__":
 
 	while True:
 		currentTime = datetime.datetime.now()
-		try:
-			logLine="%s|"%(str(currentTime))
-			# Get the CPU temperatures
-			CPUtempFile = open(cpuTempPath, "rt")
-			for line in CPUtempFile:
-				cpuTemp = float(line.strip())
-			CPUtempFile.close() 
-			# Get the hostname of this device
-			hostname = socket.gethostname()
+		logLine="%s|"%(str(currentTime))
 			
+		# Get the hostname of this device
+		hostname = socket.gethostname()
+		logLine+="%s|"%hostname
 			
-			# Get the BME280 sensor temperatures
-			for sensor in bme280:
-				temp = sensor.temperature
-				print(temp)
-			#logLine = "%s|%s|%0.1f|%0.1f|%0.1f|%0.1f|%0.1f|%0.1f"%(str(currentTime), hostname, bme280.temperature, bme280.humidity, bme280.pressure, cpuTemp/1000, IRambient, IRsky)
-			logBuffer.addEntry(logLine)
-			if args.service: log.info(logLine)
-			timeSinceUpload = currentTime - lastUpload
-			if debug: print("time since last upload %d seconds"%timeSinceUpload.seconds)
-			if timeSinceUpload.seconds > uploadCadence: 
-				if logBuffer.upload():
-					lastUpload = datetime.datetime.now()
-					if args.service: log.info("Uploaded data successfully")
-				else:
-					lastUpload = datetime.datetime.now()
-					print("Upload failed! Will try again in %d seconds"%uploadCadence)
-					if args.service: log.error("Failed to upload data. Will try again in %d seconds."%uploadCadence)
+		# Get the BME280 sensor temperatures
+		for sensor, address in zip(bme280, bme280addresses):
+			try:
+				logLine+="%0.1f|%0.1f|%0.1f|"%(sensor.temperature, sensor.humidity, sensor.pressure)
+			except:
+				logLine+="-100|-100|-100|"			
+		# Get the CPU temperature
+		CPUtempFile = open(cpuTempPath, "rt")
+		for line in CPUtempFile:
+			cpuTemp = float(line.strip())/1000
+		CPUtempFile.close() 
+		logLine+="%0.1f|"%cpuTemp
+		
+		logBuffer.addEntry(logLine)
+		timeSinceUpload = currentTime - lastUpload
+		if debug: information("time since last upload %d seconds"%timeSinceUpload.seconds)
+		if timeSinceUpload.seconds > uploadCadence: 
+			lastUpload = datetime.datetime.now()
+			if logBuffer.upload():
+				information("Uploaded data successfully")
+			else:
+				information("Upload failed! Will try again in %d seconds"%uploadCadence)
+			# If a sensor is not responding, try to initialise
+			for index, b in enumerate(bme280):
+				if b=="null":
+					for address in bme280addresses:
+						decAddress = int(address, 16)
+						try:
+							newDevice = adafruit_bme280.Adafruit_BME280_I2C(i2c, address = decAddress)
+							bme280[index] = newDevice
+						except:
+							information("Sensor still defective at address %s"%address)
+							
 					
-			logFile.write(logLine + "\n")
-			if debug: print(logLine.strip())
-			logFile.flush()
-		except OSError as e:
-			if debug: 
-				print("Error connecting to sensor")
-				print(e)
-	
+		logFile.write(logLine + "\n")
+		information(logLine.strip())
+		logFile.flush()
+		
 	
 		time.sleep(cadence)
 	

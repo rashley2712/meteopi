@@ -166,7 +166,7 @@ if __name__ == "__main__":
 		if len(cameraConfig['annotation']) > 0:
 			information("Custom annotation requested: " + cameraConfig['annotation'])
 			extraAnnotation+= " " + cameraConfig['annotation']
-		# extraAnnotation = "\"" + extraAnnotation + "\""
+		extraAnnotation = "'" + extraAnnotation + "'"
 		
 		imageCommand.append('-a')	# Add annotation ...
 		imageCommand.append(extraAnnotation)	# custom text 
