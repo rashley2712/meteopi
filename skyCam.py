@@ -15,6 +15,7 @@ def fetchCameraConfig(URL):
 	data = json.loads(response.text)
 	information("%s has the following parameters for the camera"%URL)
 	information(str(data))
+	response.close()
 	return data
 
 
@@ -83,6 +84,7 @@ def uploadToServer(imageFilename, URL):
 	try:
 		response = requests.post(destinationURL, files=files)
 		information("response code: " + str(response.status_code))
+		response.close()
 	except Exception as e: 
 		if args.service: log.error("Failed to upload image to %s\n"%destinationURL)
 		information("error: " + repr(e))

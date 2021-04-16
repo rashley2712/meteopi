@@ -56,6 +56,7 @@ class logBufferClass():
 			print(x.text)
 			if x.text == "SUCCESS": success = True
 			self.clear()
+			x.close()
 		except Exception as e: 
 			success = False
 			print(e)
