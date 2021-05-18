@@ -25,9 +25,9 @@ if __name__ == "__main__":
 	debug = False
 	GPIO.setwarnings(True) # Ignore warning for now
 	GPIO.setmode(GPIO.BCM) # Use BCM pin numbering
-	pinID = 23
+	pinID = 21
 	cadence = args.cadence
-	GPIO.setup(pinID, GPIO.OUT, initial=GPIO.LOW) #
+	GPIO.setup(pinID, GPIO.OUT, initial=GPIO.HIGH) #
 	cpuTempPath = "/sys/class/thermal/thermal_zone0/temp"
 	logLine = "Fan will switch on at %d degrees.\n"%args.temp
 	log = logging.getLogger('fanmonitor.service')
