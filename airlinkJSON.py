@@ -1,9 +1,8 @@
 #!/usr/bin/env python3
-import matplotlib.pyplot, sys
+import sys
 import argparse, json
 import datetime
 import time, requests
-import numpy
 
 def getJSONfromURL(url):
 	response = requests.get(url)
@@ -46,6 +45,7 @@ if __name__ == "__main__":
 		time.sleep(cadence)
 	
 	outputfile.close()
+
 	fileHandle.close()
 	data = str(data)
 	print(data)
