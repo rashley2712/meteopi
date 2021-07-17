@@ -158,8 +158,8 @@ if __name__ == "__main__":
 			imageCommand.append('-ae')
 			imageCommand.append('64,0x000000,0xffffff')
 
-		#imageCommand.append('-a')	# Add annotation ...
-		#imageCommand.append('12')	# ... date and time
+		imageCommand.append('--awb')	# Correct for removal of IR filter
+		imageCommand.append('greyworld')	
 		#imageCommand.append('-a')	# Add annotation ...
 		#imageCommand.append('%Y-%m-%d %X')	# ... date and time
 		extraAnnotation = timeString
