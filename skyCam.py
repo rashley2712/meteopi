@@ -91,7 +91,7 @@ def uploadToServer(imageFilename, URL):
 		return 
 	information("Uploaded image to %s\n"%destinationURL) 
 	return
-
+   
 def information(message):
 	global log
 	if service: log.info(message)
