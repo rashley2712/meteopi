@@ -12,6 +12,8 @@ import skywatch
 import threading
 import signal
 
+
+
 def debugOut(message):
 	if debug: print(message)
 	
@@ -49,7 +51,7 @@ if __name__ == "__main__":
 		logLine = "Starting the skywatch system daemon."
 		log.info(logLine)
 	
-	config = skywatch.config()
+	config = skywatch.config(filename=args.config)
 	config.load()
 	if local: config.local = True
 	
@@ -69,15 +71,12 @@ if __name__ == "__main__":
 	domeSensor.setFan(domeFan)
 	cpuSensor.startMonitor()
 	domeSensor.startMonitor()
-	
+	time.sleep(4)
 	n=0
-	
 	while True: 
-		print("iteration %d"%n)
-		print("Main loop... CPU: %.1f"%(cpuSensor.temperature))
-		time.sleep(30)
+		information("Main control loop [%d]... CPU: %.1f Dome: %.1f"%(n, cpuSensor.temperature, domeSensor.temperature))
+		time.sleep(180)
 		n+=1
-		if n>5: break
 		
 	
 	sys.exit()

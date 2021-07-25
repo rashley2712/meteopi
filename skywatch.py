@@ -1,3 +1,5 @@
+#import sys
+#sys.path.append('/usr/local/lib/python3.7/dist-packages')
 import json, os, requests
 import adafruit_dht
 import board, time, glob
