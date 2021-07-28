@@ -4,7 +4,7 @@ After=multi-user.target
 
 [Service]
 Type=idle
-ExecStart=/usr/bin/python /home/pi/share/meteopi/skyCam.py -c 300 -s
+ExecStart=/usr/bin/python /home/pi/share/meteopi/skyCam.py -t 300 -s -c /home/pi/share/meteopi/meteopi.cfg
 
 [Install]
 WantedBy=multi-user.target

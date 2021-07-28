@@ -1,0 +1,13 @@
+[Unit]
+Description=Overall control service for skyWATCH
+After=multi-user.target
+
+[Service]
+User=pi
+Group=pi
+Type=idle
+ExecStart=/usr/bin/python /home/pi/share/meteopi/systemControl.py -s -c /home/pi/share/meteopi/meteopi.cfg
+
+[Install]
+WantedBy=multi-user.target
+
