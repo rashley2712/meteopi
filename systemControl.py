@@ -12,8 +12,6 @@ import skywatch
 import threading
 import signal
 
-
-
 def debugOut(message):
 	if debug: print(message)
 	
@@ -24,11 +22,14 @@ def information(message):
 		print(message)
 	return
 
-
 def signal_handler(sig, frame):
 	print("Caught Ctrl-C")
+	print("Killing monitors")
+	exteriorSensor.killMonitor()
+	domeSensor.killMonitor()
+	cpuSensor.killMonitor()
+	logger.close()
 	sys.exit(-1)
-
 
 if __name__ == "__main__":
 	signal.signal(signal.SIGINT, signal_handler)
@@ -57,6 +58,9 @@ if __name__ == "__main__":
 	
 	# config.refresh()
 	
+	# Initiliase the log file
+	logger = skywatch.logger()
+	
 	# Initiliase temperature sensors and fans
 	domeSensor = skywatch.domeSensor()
 	cpuSensor = skywatch.cpuSensor()
@@ -71,13 +75,19 @@ if __name__ == "__main__":
 	domeSensor.setFan(domeFan)
 	cpuSensor.startMonitor()
 	domeSensor.startMonitor()
+	exteriorSensor.startMonitor()
+	logger.attachSensor(cpuSensor)
+	logger.attachSensor(domeSensor)
+	logger.attachSensor(exteriorSensor)
 	time.sleep(4)
 	n=0
+	logger.startMonitor()
 	while True: 
-		information("Main control loop [%d]... CPU: %.1f Dome: %.1f"%(n, cpuSensor.temperature, domeSensor.temperature))
+		information("Main control loop [%d]... CPU: %.1f Dome: %.1f Exterior: %.1f"%(n, cpuSensor.temperature, domeSensor.temperature, exteriorSensor.temperature))
 		time.sleep(180)
 		n+=1
 		
+	logger.close()
 	
 	sys.exit()
 	

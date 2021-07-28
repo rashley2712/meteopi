@@ -1,23 +1,97 @@
 #import sys
 #sys.path.append('/usr/local/lib/python3.7/dist-packages')
-import json, os, requests
+import json, os, requests, datetime
 import adafruit_dht
 import board, time, glob
 import RPi.GPIO as GPIO # Import Raspberry Pi GPIO library
 import threading
 
+class logger():
+
+	def __init__(self, filename = '/var/log/skywatch.log'):
+		self.logfile = filename
+		self.handle = open(self.logfile, 'at')
+		self.sensors = []
+		self.logCadence = 120
+		self.exit = False
+		self.name = "log"
+		
+	def writeEntry(self, message):
+		timeStamp = datetime.datetime.now()
+		timeStampStr = timeStamp.strftime("%Y%m%d %H:%M:%S")
+		self.handle.write(timeStampStr + ": " + message)
+		self.handle.write("\n")
+		self.handle.flush()
+		
+	def attachSensor(self, sensor):
+		self.sensors.append(sensor)
+		
+	def createEntry(self):
+		for sensor in self.sensors: 
+			self.writeEntry(str(sensor.name) + ": " + str(sensor.logData))
+			
+	def createJSONlog(self):
+		logEntry = {}
+		for sensor in self.sensors:
+			logEntry[sensor.name] = sensor.logData
+		self.writeEntry(json.dumps(logEntry))
+		
+		
+			
+	def monitor(self):
+		while not self.exit:
+			self.createJSONlog()
+			time.sleep(self.logCadence)
+			
+	def startMonitor(self):
+		self.monitorThread = threading.Thread(name='non-block', target=self.monitor)
+		self.monitorThread.start()
+
+	def killMonitor(self):
+		print("stopping %s monitor."%self.name)
+		self.exit = True
+		
+		
+	def reset(self):
+		self.handle.truncate(0)
+		
+	def close(self):
+		self.handle.close()
+	
 
 class exteriorSensor():
 	def __init__(self):
 		self.temperature = -999
 		self.base_dir = '/sys/bus/w1/devices/'
+		self.name = "exterior"
+		self.monitorCadence = 20
+		self.fan = False
+		self.attachedFan = None
+		self.exit = False
+		self.logData = { }
+		
 		try: 
 			self.device_folder = glob.glob(self.base_dir + '28*')[0]
 			self.device_file = self.device_folder + '/w1_slave'
 		except IndexError as e:
 			print("Cannot initiliase the DS18B20")
 		
-
+	def monitor(self):
+		while not self.exit:
+			self.readTemp()
+			print(self.name + "monitor: ", self.temperature)
+			if self.fan: self.attachedFan.checkFan(self.temperature)
+			self.logData['temperature'] = self.temperature
+			time.sleep(self.monitorCadence)
+		
+	def startMonitor(self):
+		self.exit = False
+		self.monitorThread = threading.Thread(name='non-block', target=self.monitor)
+		self.monitorThread.start()
+	
+	def killMonitor(self):
+		print("stopping %s monitor."%self.name)
+		self.exit = True
 
 	def readTemp(self): 
 		try:
@@ -38,27 +112,34 @@ class cpuSensor():
 	def __init__(self, name = "cpu"):
 		self.cpuTempPath = "/sys/class/thermal/thermal_zone0/temp"
 		self.temperature = -999
-		self.monitorCadence = 4
+		self.monitorCadence = 10
 		self.name = name
 		self.attachedFan = None
 		self.fan = False
+		self.exit = False
+		self.logData = { } 
 		
 	def setFan(self, fan):
 		self.fan = True
 		self.attachedFan = fan
 		
+	def killMonitor(self):
+		print("stopping %s monitor."%self.name)
+		self.exit = True
+
 	def readTemp(self):
 		try:
 			CPUtempFile = open(self.cpuTempPath, "rt")
 			for line in CPUtempFile:
 				self.temperature = float(line.strip())/1000
+				self.logData['temperature'] = self.temperature
 			CPUtempFile.close() 
 		except Exception as e:
 			print(str(e))	
 		return self.temperature
 		
 	def monitor(self):
-		while True:
+		while not self.exit:
 			self.readTemp()
 			print(self.name + "monitor: ", self.temperature)
 			if self.fan: self.attachedFan.checkFan(self.temperature)
@@ -76,11 +157,17 @@ class domeSensor():
 		self.dhtDevice = adafruit_dht.DHT22(board.D17)
 		self.temperature = -999
 		self.humidity = -999
-		self.monitorCadence = 10
+		self.monitorCadence = 20
 		self.name = "dome"
 		self.attachedFan = None
 		self.fan = False
+		self.exit = False
+		self.logData = { }
 		
+	def killMonitor(self):
+		print("stopping %s monitor."%self.name)
+		self.exit = True
+
 	def setFan(self, fan):
 		self.fan = True
 		self.attachedFan = fan
@@ -97,6 +184,7 @@ class domeSensor():
 			print("Re-initiliasing dome sensor")
 			time.sleep(5)
 			self.dhtDevice = adafruit_dht.DHT(board.D17)
+		self.logData['temperature'] = self.temperature
 		return self.temperature
 
 
@@ -112,10 +200,11 @@ class domeSensor():
 			print("Re-initiliasing dome sensor")
 			time.sleep(5)
 			self.dhtDevice = adafruit_dht.DHT(board.D17)
+		self.logData['humidity'] = self.humidity
 		return self.humidity
 		
 	def monitor(self):
-		while True:
+		while not self.exit:
 			self.readTemp()
 			self.readHumidity()
 			print(self.name + "monitor: ", self.temperature, self.humidity)
