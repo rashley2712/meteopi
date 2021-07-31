@@ -1,10 +1,103 @@
-#import sys
-#sys.path.append('/usr/local/lib/python3.7/dist-packages')
 import json, os, requests, datetime
 import adafruit_dht
 import board, time, glob
 import RPi.GPIO as GPIO # Import Raspberry Pi GPIO library
 import threading
+import socket, subprocess, uuid, shutil
+
+class systemInfo:
+	def __init__(self):
+		self.systemInfo = {}
+		# Get IP address
+		s = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
+		s.connect(("8.8.8.8", 80))
+		ipAddress = s.getsockname()[0]
+		self.systemInfo['localip'] = ipAddress
+
+		# Get WIFI SSID
+		output = subprocess.check_output(['sudo', 'iwgetid']).decode('UTF-8')
+		try: 
+			ssid = output.split('"')[1]
+		except:
+			ssid = "none"	
+		self.systemInfo['SSID'] = ssid
+
+		# Get mac address
+		macAddress = ':'.join(['{:02x}'.format((uuid.getnode() >> ele) & 0xff) for ele in range(0,8*6,8)][::-1])
+		self.systemInfo['macaddress'] = macAddress
+
+		# Get uptime
+		with open('/proc/uptime', 'r') as f:
+			uptime_seconds = float(f.readline().split()[0])
+		self.systemInfo['uptime'] = uptime_seconds
+		
+		
+		# Get disk usage
+		total, used, free = shutil.disk_usage("/")
+		self.systemInfo['disktotal'] = total // (2**30)
+		self.systemInfo['diskused'] = used // (2**30)
+		self.systemInfo['diskfree'] = free // (2**30)
+		
+
+
+
+class webController:
+	def __init__(self):
+		self.statusURL = "http://rashley.local/piStatus"
+		self.identity = socket.gethostname()
+		self.status = {"hostname": self.identity}
+		self.system = systemInfo()
+		self.sensors = []
+
+	def attachSensor(self, sensor):
+		self.sensors.append(sensor)
+		
+
+	def sendStatus(self):
+		sensorJSON = {}
+		for sensor in self.sensors:
+			sensorJSON[sensor.name] = sensor.logData
+		self.status['sensors'] = sensorJSON
+		self.sendData("http://rashley.local/pistatus", self.status)
+
+
+
+	def sendData(self, URL, jsonData):
+		success = False
+		try: 
+			response = requests.post(URL, json=jsonData)
+			responseJSON = json.loads(response.text)
+			print(json.dumps(responseJSON, indent=4))
+			if responseJSON['status'] == 'success': success = True
+			response.close()
+		except Exception as e: 
+			success = False
+			print(e)
+				
+		print(success)
+		return success
+
+
+	def sendSystem(self):
+		print(json.dumps(self.status, indent=4))
+		print("Uploading to ", self.statusURL)
+		self.status['system'] = self.system.systemInfo
+	
+		success = False
+		try: 
+			headers = {'Content-type': 'application/json', 'Accept': 'text/plain'}
+			response = requests.post(self.statusURL, json=self.status)
+			responseJSON = json.loads(response.text)
+			print(json.dumps(responseJSON, indent=4))
+			if responseJSON['status'] == 'success': success = True
+			response.close()
+		except Exception as e: 
+			success = False
+			print(e)
+				
+		print(success)
+		return success
+
 
 class logger():
 
@@ -35,8 +128,6 @@ class logger():
 		for sensor in self.sensors:
 			logEntry[sensor.name] = sensor.logData
 		self.writeEntry(json.dumps(logEntry))
-		
-		
 			
 	def monitor(self):
 		while not self.exit:
