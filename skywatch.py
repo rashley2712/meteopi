@@ -42,25 +42,42 @@ class systemInfo:
 
 
 class webController:
-	def __init__(self):
+	def __init__(self, baseURL = "http://rashley.local"):
 		self.statusURL = "http://rashley.local/piStatus"
+		self.baseURL = baseURL
 		self.identity = socket.gethostname()
-		self.status = {"hostname": self.identity}
-		self.system = systemInfo()
+		self.status = {self.identity: {}}
 		self.sensors = []
+		self.exit = False
+		self.meteoCadence = 30
+		self.systemCadence = 100
+		self.name = "web uploader"
 
 	def attachSensor(self, sensor):
 		self.sensors.append(sensor)
 		
-
-	def sendStatus(self):
+	def sendMeteo(self):
+		self.status = {self.identity: {}}
 		sensorJSON = {}
+		timeStamp = datetime.datetime.now()
+		timeStampStr = timeStamp.strftime("%Y-%m-%d %H:%M:%S")
+		sensorJSON['timestamp'] = timeStampStr
 		for sensor in self.sensors:
 			sensorJSON[sensor.name] = sensor.logData
-		self.status['sensors'] = sensorJSON
-		self.sendData("http://rashley.local/pistatus", self.status)
+		self.status[self.identity]['log'] = sensorJSON
+		print("Sending..." + json.dumps(self.status, indent=4))
+		self.sendData(os.path.join(self.baseURL, "piStatus"), self.status)
 
-
+	def sendSystem(self):
+		self.status = {self.identity: {}}
+		systemJSON = {}
+		timeStamp = datetime.datetime.now()
+		timeStampStr = timeStamp.strftime("%Y-%m-%d %H:%M:%S")
+		systemJSON = systemInfo().systemInfo
+		systemJSON['timestamp'] = timeStampStr
+		self.status[self.identity]['system'] = systemJSON 
+		print("Sending..." + json.dumps(self.status, indent=4))
+		self.sendData(os.path.join(self.baseURL, "piStatus"), self.status)
 
 	def sendData(self, URL, jsonData):
 		success = False
@@ -77,27 +94,29 @@ class webController:
 		print(success)
 		return success
 
+	def meteoMonitor(self):
+		while not self.exit:
+			self.sendMeteo()
+			time.sleep(self.meteoCadence)
 
-	def sendSystem(self):
-		print(json.dumps(self.status, indent=4))
-		print("Uploading to ", self.statusURL)
-		self.status['system'] = self.system.systemInfo
-	
-		success = False
-		try: 
-			headers = {'Content-type': 'application/json', 'Accept': 'text/plain'}
-			response = requests.post(self.statusURL, json=self.status)
-			responseJSON = json.loads(response.text)
-			print(json.dumps(responseJSON, indent=4))
-			if responseJSON['status'] == 'success': success = True
-			response.close()
-		except Exception as e: 
-			success = False
-			print(e)
-				
-		print(success)
-		return success
+	def systemMonitor(self):
+		while not self.exit:
+			self.sendSystem()
+			time.sleep(self.systemCadence)
 
+	def startMonitor(self):
+		self.meteoThread = threading.Thread(name='non-block', target=self.meteoMonitor)
+		self.meteoThread.start()
+		time.sleep(10)
+		self.systemThread = threading.Thread(name='non-block', target=self.systemMonitor)
+		self.systemThread.start()
+		
+
+	def killMonitor(self):
+		print("stopping %s monitor."%self.name)
+		self.exit = True
+
+		
 
 class logger():
 
@@ -111,7 +130,7 @@ class logger():
 		
 	def writeEntry(self, message):
 		timeStamp = datetime.datetime.now()
-		timeStampStr = timeStamp.strftime("%Y%m%d %H:%M:%S")
+		timeStampStr = timeStamp.strftime("%Y-%m-%d %H:%M:%S")
 		self.handle.write(timeStampStr + ": " + message)
 		self.handle.write("\n")
 		self.handle.flush()
@@ -151,10 +170,10 @@ class logger():
 	
 
 class exteriorSensor():
-	def __init__(self):
+	def __init__(self, name="exterior"):
 		self.temperature = -999
 		self.base_dir = '/sys/bus/w1/devices/'
-		self.name = "exterior"
+		self.name = name
 		self.monitorCadence = 20
 		self.fan = False
 		self.attachedFan = None
@@ -251,6 +270,7 @@ class domeSensor():
 		self.monitorCadence = 20
 		self.name = "dome"
 		self.attachedFan = None
+		self.attachedFans = []
 		self.fan = False
 		self.exit = False
 		self.logData = { }
@@ -262,6 +282,10 @@ class domeSensor():
 	def setFan(self, fan):
 		self.fan = True
 		self.attachedFan = fan
+
+	def attachFan(self, fan):
+		self.attachedFans.append(fan)
+		self.fan = True
 		
 	def readTemp(self):
 		try:
@@ -299,7 +323,9 @@ class domeSensor():
 			self.readTemp()
 			self.readHumidity()
 			print(self.name + "monitor: ", self.temperature, self.humidity)
-			if self.fan: self.attachedFan.checkFan(self.temperature)
+			if self.fan: 
+				for fan in self.attachedFans:
+					fan.checkFan(self.temperature)
 			time.sleep(self.monitorCadence)
 		
 	def startMonitor(self):
@@ -309,11 +335,11 @@ class domeSensor():
 
 
 class fanController():
-	def __init__(self, pin = 17):
-		self.GPIO = pin
-		self.name = "none"
-		self.triggerTemperature = 65
-		self.hysterisis = 5
+	def __init__(self, config):
+		self.GPIO = config['GPIO']
+		self.name = config['name']
+		self.triggerTemperature = config['temperatureUpper']
+		self.hysterisis = config['temperatureUpper'] - config['temperatureLower']
 		GPIO.setmode(GPIO.BCM) # Use BCM pin numbering
 		GPIO.setup(self.GPIO, GPIO.OUT, initial=GPIO.LOW)
 		self.fanOn = False 
@@ -343,26 +369,32 @@ class fanController():
 
 class config():
 	def __init__(self, filename="meteopi.cfg", debug=False):
-		self.db = {}
+		self._db = {}
 		self.filename = filename
-		self.debug = debug
-		self.json = {}
-		self.local = False
-		self.logger = None
-		self.service = False
+		self._debug = debug
+		self._json = {}
+		self._local = False
+		self._logger = None
+		self._service = False
 		
 	def load(self):
 		configFile = open(self.filename, 'rt')
-		self.json = json.loads(configFile.read())
-		#print(self.json)
+		self._json = json.loads(configFile.read())
 		configFile.close()
 		self.setProperties()
 		
 	def setProperties(self):
-		for key in self.json.keys():
-			print(key, ":", self.json[key])
-			setattr(self, key, self.json[key])
+		for key in self._json.keys():
+			print(key, ":", self._json[key])
+			setattr(self, key, self._json[key])
 		
+	def getProperties(self):
+		print("I have the following properties")
+		self._propertyList = []
+		for key in self.__dict__.keys():
+			if not key.startswith('_'): self._propertyList.append(key)
+		return self._propertyList
+	
 	def refresh(self):
 		configURL = os.path.join(self.baseURL, "runtime.cfg")
 		if self.local: configURL = os.path.join(self.localURL, "runtime.cfg")
