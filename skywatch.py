@@ -42,16 +42,17 @@ class systemInfo:
 
 
 class webController:
-	def __init__(self, baseURL = "http://rashley.local"):
+	def __init__(self, baseURL = "http://rashley.local", timezone="utc"):
 		self.statusURL = "http://rashley.local/piStatus"
 		self.baseURL = baseURL
 		self.identity = socket.gethostname()
 		self.status = {self.identity: {}}
 		self.sensors = []
 		self.exit = False
-		self.meteoCadence = 30
-		self.systemCadence = 100
+		self.meteoCadence = 60
+		self.systemCadence = 300
 		self.name = "web uploader"
+		self.timezone = timezone
 
 	def attachSensor(self, sensor):
 		self.sensors.append(sensor)
@@ -62,6 +63,7 @@ class webController:
 		timeStamp = datetime.datetime.now()
 		timeStampStr = timeStamp.strftime("%Y-%m-%d %H:%M:%S")
 		sensorJSON['timestamp'] = timeStampStr
+		sensorJSON['timezone'] = self.timezone
 		for sensor in self.sensors:
 			sensorJSON[sensor.name] = sensor.logData
 		self.status[self.identity]['log'] = sensorJSON
@@ -75,6 +77,7 @@ class webController:
 		timeStampStr = timeStamp.strftime("%Y-%m-%d %H:%M:%S")
 		systemJSON = systemInfo().systemInfo
 		systemJSON['timestamp'] = timeStampStr
+		systemJSON['timezone'] = self.timezone
 		self.status[self.identity]['system'] = systemJSON 
 		print("Sending..." + json.dumps(self.status, indent=4))
 		self.sendData(os.path.join(self.baseURL, "piStatus"), self.status)
