@@ -12,6 +12,7 @@ import uuid
 import subprocess
 
 
+
 def upload(diagnostics):
 	global baseURL
 	uploadDestination = os.path.join(baseURL, "diagnostics")
@@ -31,14 +32,17 @@ if __name__ == "__main__":
 	parser.add_argument('-c', '--config', type=str, default='meteopi.cfg', help='Config file.' )
 	parser.add_argument('-w', '--wait', action="store_true", default=False, help='Wait for 1 minute before trying to send diagnostic information.')
 	parser.add_argument('-s', '--service', action="store_true", default=False, help='Specify this option if running as a service.' )
+	parser.add_argument('-l', '--local', action="store_true", default=False, help='Use rashley.local as the web service' )
 	args = parser.parse_args()
 	if args.wait:
 		time.sleep(60)
 
+	localMode = args.local
 	configFile = open(args.config, 'rt')
 	config = json.loads(configFile.read())
 	print(config)
 	baseURL = config['baseURL']
+	if localMode: baseURL = config['localURL']
 
 	diagnostics = {}
 	
@@ -65,7 +69,7 @@ if __name__ == "__main__":
 	diagnostics['localip'] = ipAddress
 
 	# Get WIFI SSID
-	output = subprocess.check_output(['sudo', 'iwgetid']).decode('UTF-8')
+	output = subprocess.check_output(['iwgetid']).decode('UTF-8')
 	try: 
 		ssid = output.split('"')[1]
 	except:
