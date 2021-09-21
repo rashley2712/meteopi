@@ -3,6 +3,7 @@ import board
 import requests
 import argparse
 import busio
+import json
 import time
 import datetime
 import adafruit_bme280
@@ -31,14 +32,18 @@ patterns = { "heartbeat" : [ [1, 0.02], [0, 7] ],
 
 if __name__ == "__main__":
 	parser = argparse.ArgumentParser(description='Controls the LED status light.')
-	parser.add_argument('-c', '--cadence', type=int, default=5, help='Cadence in seconds.' )
+	parser.add_argument('-t', '--cadence', type=int, default=5, help='Cadence in seconds.' )
 	parser.add_argument('-s', '--service', action="store_true", default=False, help='Specify this option if running as a service.' )
-
+	parser.add_argument('-c', '--config', type=str, default='/home/pi/code/meteopi/meteopi.cfg', help='Config file.' )
 	args = parser.parse_args()
 
+	configFile = open(args.config, 'rt')
+	config = json.loads(configFile.read())
+	ledFile = config['ledFile']
+	
 	GPIO.setwarnings(True) # Ignore warning for now
 	GPIO.setmode(GPIO.BCM) # Use BCM pin numbering
-	pinID = 17
+	pinID = config['ledPIN']
 	cadence = args.cadence
 	GPIO.setup(pinID, GPIO.OUT, initial=GPIO.LOW) #
 	
@@ -51,11 +56,11 @@ if __name__ == "__main__":
 
 	
 	try:
-		statusFile = open("/var/log/status.led", "rt")
+		statusFile = open(ledFile, "rt")
 		line = statusFile.readline().strip()
 		statusFile.close()
 	except OSError as e:
-		print("No /var/log/status.led file found.")
+		print("No",  ledFile, "file found.")
 		sys.exit()
 	
 	try:
@@ -71,11 +76,11 @@ if __name__ == "__main__":
 	while True:
 		time.sleep(cadence)
 		try:
-			statusFile = open("/var/log/status.led", "rt")
+			statusFile = open(ledFile, "rt")
 			line = statusFile.readline().strip()
 			statusFile.close()
 		except OSError as e:
-			print("No /var/log/status.led file found.")
+			print("No",  ledFile, "file found.")
 			
 		try:
 			pattern = patterns[line]
