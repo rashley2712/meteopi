@@ -69,8 +69,8 @@ if __name__ == "__main__":
 	diagnostics['localip'] = ipAddress
 
 	# Get WIFI SSID
-	output = subprocess.check_output(['iwgetid']).decode('UTF-8')
 	try: 
+		output = subprocess.check_output(['sudo', 'iwgetid']).decode('UTF-8')
 		ssid = output.split('"')[1]
 	except:
 		ssid = "none"	
