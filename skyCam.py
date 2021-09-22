@@ -9,6 +9,8 @@ from systemd import journal
 import RPi.GPIO as GPIO # Import Raspberry Pi GPIO library
 import ephem
 import json
+import skywatch
+import socket
 
 def fetchCameraConfig(URL):
 	response = requests.get(URL)
@@ -66,7 +68,7 @@ def getSunMoon(locationInfo):
 	phase = timeSinceLastNewMoon / period
 	information("Moon elevation is: %.2f and illumination is: %.2f"%(moon.alt*180/3.14125, moon.phase))
 	if altitude<-5: 
-		information("will take night exposure...")
+		# information("will take night exposure...")
 		night = True
 		
 	results = {
@@ -101,21 +103,24 @@ def information(message):
 
 if __name__ == "__main__":
 	parser = argparse.ArgumentParser(description='Runs the camera to capture a still image.')
-	parser.add_argument('-t', '--cadence', type=int, default=180, help='Cadence in seconds.' )
 	parser.add_argument('-c', '--config', type=str, default='meteopi.cfg', help='Config file.' )
 	parser.add_argument('-s', '--service', action="store_true", default=False, help='Specify this option if running as a service.' )
 	parser.add_argument('--test', action="store_true", default=False, help='Test mode. Don\'t upload images.' )
 	parser.add_argument('-x', '--exit', action="store_true", default=False, help='Take one exposure and then exit.' )
 	args = parser.parse_args()
-	cadence = args.cadence
+	
 	service = args.service
 
-	configFile = open(args.config, 'rt')
-	config = json.loads(configFile.read())
-	configFile.close()
-	location = config['currentLocation']
+	config = skywatch.config(filename=args.config)
+	config.load()
+	#print(config.getProperties())
+	
+	# Get hostname
+	hostname = socket.gethostname()
+	
+	location = config.currentLocation
 	locationInfo = {}
-	for l in config['locations']:
+	for l in config.locations:
 		if l['name'] == location: locationInfo = l
 	
 	if service:
@@ -131,39 +136,43 @@ if __name__ == "__main__":
 
 	while True:
 		beginning = datetime.datetime.now()
-		cameraConfig = fetchCameraConfig(config['cameraparameterURL'])
+		# cameraConfig = fetchCameraConfig(config.cameraparameterURL)
 		ephemeris = getSunMoon(locationInfo)
-		night = ephemeris['night']
+		if not ephemeris['night']: mode = 'day'
+		else: mode = 'night'
+		
+		information("Exposures will be in " + mode + " mode.")
+		cameraConfig = config.camera[mode]
+		cadence = cameraConfig['cadence']
+		
 		timeString = beginning.strftime("%Y%m%d_%H%M%S")
 		# Execute raspistill and time the execution
 		imageCommand = ['raspistill']
-		try: 
-			cadence = float(cameraConfig['cadence'])
-		except:
-			cadence = args.cadence
 		
-		if night: 
-			try:
-				expTime = float(cameraConfig['expTime'])
-			except: 
-				expTime = 10
 		
+		
+		if mode=="night": 
+			expTime = float(cameraConfig['expTime'])
+			
 			timeMicros = expTime*1E6
-			cmdString = cameraConfig['nightParams'] + " -ss %.0f"%timeMicros
+			cmdString = cameraConfig['params'] + " -ss %.0f"%timeMicros
 			for piece in cmdString.split(" "):
 				imageCommand.append(piece)
 			imageCommand.append('-ae')
 			imageCommand.append('64,0xffffff,0x000000')
 		else: 
-			imageCommand.append('-ae')
+			cmdString = cameraConfig['params'] + " -ss %.0f"%timeMicros
+			for piece in cmdString.split(" "):
+				imageCommand.append(piece)
+				imageCommand.append('-ae')
 			imageCommand.append('64,0x000000,0xffffff')
 
-		imageCommand.append('--awb')	# Correct for removal of IR filter
-		imageCommand.append('greyworld')	
+		#imageCommand.append('--awb')	# Correct for removal of IR filter
+		#imageCommand.append('greyworld')	
 		#imageCommand.append('-a')	# Add annotation ...
 		#imageCommand.append('%Y-%m-%d %X')	# ... date and time
 		extraAnnotation = timeString
-		if night: extraAnnotation+= " N %ds"%int(expTime)
+		if mode=="night": extraAnnotation+= " N %ds"%int(expTime)
 		extraAnnotation+= " sun: %.0f moon: %.0f (%.0f%%)"%(ephemeris['sunElevation'], ephemeris['moonElevation'], ephemeris['moonIllumination'])
 		if len(cameraConfig['annotation']) > 0:
 			information("Custom annotation requested: " + cameraConfig['annotation'])
@@ -189,7 +198,7 @@ if __name__ == "__main__":
 		midpoint = start + duration/2
 		information("time elapsed %s"%str(duration))
 		
-		destinationFilename = os.path.join(config['cameraoutputpath'], timeString + ".jpg")
+		destinationFilename = os.path.join(config.cameraoutputpath, timeString + "_" + hostname + ".jpg")
 		information("moving the capture to %s"%destinationFilename)
 		os.rename("/tmp/camera.jpg", destinationFilename)
 		if not args.test: uploadToServer(destinationFilename, config['camerauploadURL'])
@@ -203,6 +212,4 @@ if __name__ == "__main__":
 			information("Sleeping now")
 			time.sleep(timeToWait)
 	
-
-
 	sys.exit()

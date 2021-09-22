@@ -28,7 +28,7 @@ def signal_handler(sig, frame):
 	exteriorSensor.killMonitor()
 	domeSensor.killMonitor()
 	cpuSensor.killMonitor()
-	webber.killMonitor()
+	#webber.killMonitor()
 	logger.close()
 	sys.exit()
 
@@ -61,33 +61,34 @@ if __name__ == "__main__":
 	
 	# Initiliase the log file
 	logger = skywatch.logger()
-	webber = skywatch.webController(baseURL = config.baseURL)
+	#webber = skywatch.webController(baseURL = config.baseURL)
 	#webber = skywatch.webController()
 	# Initiliase temperature sensors and fans
-	domeSensor = skywatch.domeSensor()
+	domeSensor = skywatch.domeSensor2()
+	exteriorSensor = skywatch.IRSensor()
 	cpuSensor = skywatch.cpuSensor()
-	exteriorSensor = skywatch.exteriorSensor()
-	caseFan = skywatch.fanController(config.caseFan)
-	domeFan = skywatch.fanController(config.domeFan)
-	domeSensor.attachFan(caseFan)
-	domeSensor.attachFan(domeFan)
-	cpuSensor.startMonitor()
+	#exteriorSensor = skywatch.exteriorSensor()
+	#caseFan = skywatch.fanController(config.caseFan)
+	#domeFan = skywatch.fanController(config.domeFan)
+	#domeSensor.attachFan(caseFan)
+	#domeSensor.attachFan(domeFan)
+	#cpuSensor.startMonitor()
 	domeSensor.startMonitor()
 	exteriorSensor.startMonitor()
-	logger.attachSensor(cpuSensor)
+	#logger.attachSensor(cpuSensor)
 	logger.attachSensor(domeSensor)
 	logger.attachSensor(exteriorSensor)
 	
-	webber.attachSensor(cpuSensor)
-	webber.attachSensor(domeSensor)
-	webber.attachSensor(exteriorSensor)
+	#webber.attachSensor(cpuSensor)
+	#webber.attachSensor(domeSensor)
+	#webber.attachSensor(exteriorSensor)
 	time.sleep(6)
-	webber.startMonitor()
+	#webber.startMonitor()
 	
 	n=0
 	logger.startMonitor()
 	while True: 
-		information("Main control loop [%d]... CPU: %.1f Dome: %.1f Exterior: %.1f"%(n, cpuSensor.temperature, domeSensor.temperature, exteriorSensor.temperature))
+		information("Main control loop [%d]... CPU: %.1f Dome: %.1f Exterior: %.1f"%(n, domeSensor.temperature))
 		time.sleep(180)
 		n+=1
 		

@@ -1,6 +1,7 @@
 import json, os, requests, datetime
-import adafruit_dht
+# import adafruit_dht
 import board, time, glob
+from adafruit_bme280 import basic as adafruit_bme280
 import RPi.GPIO as GPIO # Import Raspberry Pi GPIO library
 import threading
 import socket, subprocess, uuid, shutil
@@ -262,7 +263,105 @@ class cpuSensor():
 		self.monitorThread = threading.Thread(name='non-block', target=self.monitor)
 		self.monitorThread.start()
 	
+class domeSensor2():
+	def __init__(self, name = "dome"):
+		# Initialise the bme280
+		i2c = board.I2C()  # uses board.SCL and board.SDA
+		self.bme280 = adafruit_bme280.Adafruit_BME280_I2C(i2c, address = 0x77)
+		self.temperature = -999
+		self.humidity = -999
+		self.pressure = -999
+		self.name = name
+		self.monitorCadence = 20
+		self.exit = False
+		self.logData = { } 
+		
+	def readTemp(self):
+		try:
+			self.temperature = round(self.bme280.temperature, 1)
+		except:
+			self.temperature = -999
+		self.logData['temperature'] = self.temperature
+		return self.temperature
 			
+	def readHumidity(self):
+		try:
+			self.humidity = round(self.bme280.humidity, 1)
+		except:
+			self.humidity = -999
+		self.logData['humidity'] = self.humidity
+		return self.humidity
+			
+			
+	def readPressure(self):
+		try:
+			self.pressure = round(self.bme280.pressure, 1)
+		except:
+			self.pressure = -999
+		self.logData['pressure'] = self.pressure
+		return self.pressure
+			
+	def monitor(self):
+		while not self.exit:
+			self.readTemp()
+			self.readHumidity()
+			self.readPressure()
+			print(self.name + "monitor: ", self.temperature, self.humidity, self.pressure)
+			time.sleep(self.monitorCadence)
+		
+	def startMonitor(self):
+		self.monitorThread = threading.Thread(name='non-block', target=self.monitor)
+		self.monitorThread.start()
+			
+	def killMonitor(self):
+		print("stopping %s monitor."%self.name)
+		self.exit = True
+
+class IRSensor(): 
+		def __init__(self, name = "IR"):
+			self.logData = { }
+			self.monitorCadence = 10
+			self.skytemperature = -999
+			self.ambienttemperature = -999
+			self.exit = False
+			self.name = name
+			
+		def readSky(self):
+			try: 
+				output = subprocess.check_output(['/home/pi/code/meteopi/readTsky']).decode('UTF-8')
+				self.skytemperature = round(float(output.split('\n')[0]),1)
+			except Exception as e:
+				print(e)
+				self.skytemperature = -999	
+			self.logData['IRsky'] = self.skytemperature	
+			return self.skytemperature
+			
+		def readAmb(self):
+			try: 
+				output = subprocess.check_output(['/home/pi/code/meteopi/readTamb']).decode('UTF-8')
+				self.ambienttemperature = round(float(output.split('\n')[0]),1)
+			except Exception as e:
+				print(e)
+				self.ambienttemperature = -999
+			self.logData['IRambient'] = self.ambienttemperature	
+			return self.ambienttemperature
+			
+		def monitor(self):
+			while not self.exit:
+				self.readSky()
+				self.readAmb()
+				print(self.name + "monitor: ", self.skytemperature, self.ambienttemperature)
+				time.sleep(self.monitorCadence)
+		
+		def startMonitor(self):
+			self.monitorThread = threading.Thread(name='non-block', target=self.monitor)
+			self.monitorThread.start()
+			
+		def killMonitor(self):
+			print("stopping %s monitor."%self.name)
+			self.exit = True
+
+
 class domeSensor():
 	def __init__(self, name = "dome"):
 		# Initialise the dht device, with data pin connected to:
@@ -336,7 +435,6 @@ class domeSensor():
 		self.monitorThread.start()
 	
 
-
 class fanController():
 	def __init__(self, config):
 		self.GPIO = config['GPIO']
@@ -407,8 +505,6 @@ class config():
 			debugOut(str(response.status_code) + ": " +  response.reason)
 			return -1 
 		data = json.loads(response.text)
-		#print("runtime config: %s "%configURL)
-		#print(json.dumps(data, indent=4))
 		response.close()
 		self.db = data
 		self.setProperties()

@@ -54,7 +54,6 @@ if __name__ == "__main__":
 		logLine = "Starting the LED status service with a cadence of %d seconds"%cadence
 		log.info(logLine)
 
-	
 	try:
 		statusFile = open(ledFile, "rt")
 		line = statusFile.readline().strip()
