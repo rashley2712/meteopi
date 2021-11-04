@@ -20,30 +20,20 @@ def fetchCameraConfig(URL):
 	response.close()
 	return data
 
-
-def testLED():   
-	blinkTime = 0.05
-	pinID = 47
-	GPIO.setmode(GPIO.BCM) # Use BCM pin numbering
-	GPIO.setwarnings(False) # Ignore warning for now	
-	GPIO.setup(pinID, GPIO.OUT, initial=GPIO.LOW) #
-	
-	GPIO.output(pinID, GPIO.HIGH) # Turn on
-	for i in range(20):
-		GPIO.output(pinID, GPIO.HIGH) # Turn on
-		time.sleep(blinkTime) # Sleep 
-		GPIO.output(pinID, GPIO.LOW) # Turn off
-		time.sleep(blinkTime) # Sleep 
-
-
 def offLED():   
-	pinID = 47
-	GPIO.output(pinID, GPIO.HIGH) # Turn LED off
-
+	global config
+	information("turning off status LED by writing to " + str(config.ledFile))
+	outfile = open(config.ledFile, "wt")
+	outfile.write("off\n")
+	outfile.close()
+	time.sleep(config.ledRefresh)
+		
 def onLED():   
-	pinID = 47
-	GPIO.output(pinID, GPIO.LOW) # Turn LED on
-
+	global config
+	information("status LED back to heartbeat by writing to " + str(config.ledFile))
+	outfile = open(config.ledFile, "wt")
+	outfile.write("heartbeat\n")
+	outfile.close()
 
 def getSunMoon(locationInfo): 
 	night = False
@@ -82,10 +72,11 @@ def getSunMoon(locationInfo):
 
 def uploadToServer(imageFilename, URL):
 	destinationURL = URL
-	files = {'skycam': open(imageFilename, 'rb')}
+	files = {'camera': open(imageFilename, 'rb')}
+	headers = { 'Content-type': 'image/jpeg'}
 	try:
 		response = requests.post(destinationURL, files=files)
-		information("response code: " + str(response.status_code))
+		information("SkyWATCH server's response code: " + str(response.status_code))
 		response.close()
 	except Exception as e: 
 		if args.service: log.error("Failed to upload image to %s\n"%destinationURL)
@@ -117,7 +108,7 @@ if __name__ == "__main__":
 	
 	# Get hostname
 	hostname = socket.gethostname()
-	
+
 	location = config.currentLocation
 	locationInfo = {}
 	for l in config.locations:
@@ -127,15 +118,14 @@ if __name__ == "__main__":
 		log = logging.getLogger('skycam.service')
 		log.addHandler(journal.JournaldLogHandler())
 		log.setLevel(logging.INFO)
-		logLine = "Starting the skycam with a cadence of %d seconds"%cadence
+		logLine = "Starting the skycam service"
 		log.info(logLine)
 
 	information("Location is: " + str(locationInfo))
 
-	testLED()
-
 	while True:
 		beginning = datetime.datetime.now()
+		offLED()
 		# cameraConfig = fetchCameraConfig(config.cameraparameterURL)
 		ephemeris = getSunMoon(locationInfo)
 		if not ephemeris['night']: mode = 'day'
@@ -149,8 +139,6 @@ if __name__ == "__main__":
 		# Execute raspistill and time the execution
 		imageCommand = ['raspistill']
 		
-		
-		
 		if mode=="night": 
 			expTime = float(cameraConfig['expTime'])
 			
@@ -161,10 +149,10 @@ if __name__ == "__main__":
 			imageCommand.append('-ae')
 			imageCommand.append('64,0xffffff,0x000000')
 		else: 
-			cmdString = cameraConfig['params'] + " -ss %.0f"%timeMicros
+			cmdString = cameraConfig['params']
 			for piece in cmdString.split(" "):
-				imageCommand.append(piece)
-				imageCommand.append('-ae')
+				imageCommand.append(piece)	
+			imageCommand.append('-ae')
 			imageCommand.append('64,0x000000,0xffffff')
 
 		#imageCommand.append('--awb')	# Correct for removal of IR filter
@@ -189,7 +177,6 @@ if __name__ == "__main__":
 		for piece in imageCommand:
 			cmdString+= piece + " "
 		information("cmdString: %s"%cmdString)
-		offLED()
 		start = datetime.datetime.now()
 		subprocess.call(imageCommand)	
 		end = datetime.datetime.now()
@@ -201,7 +188,7 @@ if __name__ == "__main__":
 		destinationFilename = os.path.join(config.cameraoutputpath, timeString + "_" + hostname + ".jpg")
 		information("moving the capture to %s"%destinationFilename)
 		os.rename("/tmp/camera.jpg", destinationFilename)
-		if not args.test: uploadToServer(destinationFilename, config['camerauploadURL'])
+		if not args.test: uploadToServer(destinationFilename, config.camerauploadURL)
 		if args.exit: sys.exit()
 
 		end = datetime.datetime.now()

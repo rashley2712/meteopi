@@ -59,25 +59,30 @@ if __name__ == "__main__":
 	print(config.getProperties())
 	# config.refresh()
 	
-	# Initiliase the log file
+	# Initialiase the log file
 	logger = skywatch.logger()
+	meteouploader = skywatch.meteoUploader(config = config.meteoUpload)
 	#webber = skywatch.webController(baseURL = config.baseURL)
 	#webber = skywatch.webController()
 	# Initiliase temperature sensors and fans
-	domeSensor = skywatch.domeSensor2()
-	exteriorSensor = skywatch.IRSensor()
-	cpuSensor = skywatch.cpuSensor()
+	domeSensor = skywatch.domeSensor2(config = config.domeTempSensor)
+	exteriorSensor = skywatch.IRSensor(config = config.skySensor)
+	cpuSensor = skywatch.cpuSensor(config = config.cpuSensor)
 	#exteriorSensor = skywatch.exteriorSensor()
 	#caseFan = skywatch.fanController(config.caseFan)
 	#domeFan = skywatch.fanController(config.domeFan)
 	#domeSensor.attachFan(caseFan)
 	#domeSensor.attachFan(domeFan)
-	#cpuSensor.startMonitor()
+	cpuSensor.startMonitor()
 	domeSensor.startMonitor()
 	exteriorSensor.startMonitor()
-	#logger.attachSensor(cpuSensor)
+	logger.attachSensor(cpuSensor)
 	logger.attachSensor(domeSensor)
 	logger.attachSensor(exteriorSensor)
+
+	meteouploader.attachSensor(cpuSensor)
+	meteouploader.attachSensor(domeSensor)
+	meteouploader.attachSensor(exteriorSensor)
 	
 	#webber.attachSensor(cpuSensor)
 	#webber.attachSensor(domeSensor)
@@ -87,8 +92,9 @@ if __name__ == "__main__":
 	
 	n=0
 	logger.startMonitor()
+	meteouploader.startMonitor()
 	while True: 
-		information("Main control loop [%d]... CPU: %.1f Dome: %.1f Exterior: %.1f"%(n, domeSensor.temperature))
+		#information("Main control loop [%d]... CPU: %.1f Dome: %.1f Exterior: %.1f"%(n, domeSensor.temperature))
 		time.sleep(180)
 		n+=1
 		

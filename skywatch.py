@@ -40,6 +40,65 @@ class systemInfo:
 		self.systemInfo['diskfree'] = free // (2**30)
 		
 
+class meteoUploader:
+	def __init__(self, baseURL = "http://rashley.local", timezone="utc",  config={}):
+		self.statusURL = "http://rashley.local/piStatus"
+		self.baseURL = baseURL
+		self.uploadURL = "https://skywatching.eu/meteo"
+		self.identity = socket.gethostname()
+		self.status = {self.identity: {}}
+		self.sensors = []
+		self.exit = False
+		try: 
+			self.monitorCadence = config['cadence']
+		except KeyError:
+			self.monitorCadence = 180
+		self.name = "meteo uploader"
+		self.timezone = timezone
+
+	def attachSensor(self, sensor):
+		self.sensors.append(sensor)
+		
+	def send(self):
+		data = {'hostname': self.identity}
+		timeStamp = datetime.datetime.now()
+		timeStampStr = timeStamp.strftime("%Y-%m-%d %H:%M:%S")
+		data['timestamp'] = timeStampStr
+		data['timezone'] = self.timezone
+		for sensor in self.sensors:
+			data[sensor.name] = sensor.logData
+		
+		print(str(self.name), json.dumps(data, indent=4), flush=True)
+		self.sendData(self.uploadURL, data)
+
+	def monitor(self):
+		while not self.exit:
+			self.send()
+			time.sleep(self.monitorCadence)
+
+	def startMonitor(self):
+		self.monitorThread = threading.Thread(name='non-block', target=self.monitor)
+		self.monitorThread.start()
+		
+	def killMonitor(self):
+		print("stopping %s monitor."%self.name)
+		self.exit = True
+
+	def sendData(self, URL, jsonData):
+		success = False
+		print("Sending to:", URL)
+		try: 
+			response = requests.post(URL, json=jsonData)
+			responseJSON = json.loads(response.text)
+			print(json.dumps(responseJSON, indent=4))
+			if responseJSON['status'] == 'success': success = True
+			response.close()
+		except Exception as e: 
+			success = False
+			print(e, flush=True)
+				
+		print(success, flush=True)
+		return success
 
 
 class webController:
@@ -68,7 +127,7 @@ class webController:
 		for sensor in self.sensors:
 			sensorJSON[sensor.name] = sensor.logData
 		self.status[self.identity]['log'] = sensorJSON
-		print("Sending..." + json.dumps(self.status, indent=4))
+		print("Sending..." + json.dumps(self.status, indent=4), flush=True)
 		self.sendData(os.path.join(self.baseURL, "piStatus"), self.status)
 
 	def sendSystem(self):
@@ -80,7 +139,7 @@ class webController:
 		systemJSON['timestamp'] = timeStampStr
 		systemJSON['timezone'] = self.timezone
 		self.status[self.identity]['system'] = systemJSON 
-		print("Sending..." + json.dumps(self.status, indent=4))
+		print("Sending..." + json.dumps(self.status, indent=4, flush=True))
 		self.sendData(os.path.join(self.baseURL, "piStatus"), self.status)
 
 	def sendData(self, URL, jsonData):
@@ -95,7 +154,7 @@ class webController:
 			success = False
 			print(e)
 				
-		print(success)
+		print(success, flush=True)
 		return success
 
 	def meteoMonitor(self):
@@ -123,7 +182,6 @@ class webController:
 		
 
 class logger():
-
 	def __init__(self, filename = '/var/log/skywatch.log'):
 		self.logfile = filename
 		self.handle = open(self.logfile, 'at')
@@ -193,7 +251,7 @@ class exteriorSensor():
 	def monitor(self):
 		while not self.exit:
 			self.readTemp()
-			print(self.name + "monitor: ", self.temperature)
+			print(self.name + "monitor: ", self.temperature, flush=True)
 			if self.fan: self.attachedFan.checkFan(self.temperature)
 			self.logData['temperature'] = self.temperature
 			time.sleep(self.monitorCadence)
@@ -223,14 +281,17 @@ class exteriorSensor():
 
 
 class cpuSensor():
-	def __init__(self, name = "cpu"):
+	def __init__(self, name = "cpu", config = {}):
 		self.cpuTempPath = "/sys/class/thermal/thermal_zone0/temp"
 		self.temperature = -999
-		self.monitorCadence = 10
 		self.name = name
 		self.attachedFan = None
 		self.fan = False
 		self.exit = False
+		try: 
+			self.monitorCadence = config['cadence']
+		except KeyError:
+			self.monitorCadence = 20
 		self.logData = { } 
 		
 	def setFan(self, fan):
@@ -238,7 +299,7 @@ class cpuSensor():
 		self.attachedFan = fan
 		
 	def killMonitor(self):
-		print("stopping %s monitor."%self.name)
+		print("stopping %s monitor."%self.name, flush=True)
 		self.exit = True
 
 	def readTemp(self):
@@ -255,7 +316,7 @@ class cpuSensor():
 	def monitor(self):
 		while not self.exit:
 			self.readTemp()
-			print(self.name + "monitor: ", self.temperature)
+			print(self.name + "monitor: ", self.temperature, flush=True)
 			if self.fan: self.attachedFan.checkFan(self.temperature)
 			time.sleep(self.monitorCadence)
 		
@@ -264,15 +325,25 @@ class cpuSensor():
 		self.monitorThread.start()
 	
 class domeSensor2():
-	def __init__(self, name = "dome"):
+	def __init__(self, name = "dome", config={}):
 		# Initialise the bme280
 		i2c = board.I2C()  # uses board.SCL and board.SDA
-		self.bme280 = adafruit_bme280.Adafruit_BME280_I2C(i2c, address = 0x77)
+		self.active = False
+		try:
+			self.bme280 = adafruit_bme280.Adafruit_BME280_I2C(i2c, address = 0x77)
+		except ValueError:
+			print("Sensor BME280 failed!", flush=True)
+			self.active = False
+		
 		self.temperature = -999
 		self.humidity = -999
 		self.pressure = -999
 		self.name = name
-		self.monitorCadence = 20
+		print(config, flush=True)
+		try: 
+			self.monitorCadence = config['cadence']
+		except KeyError:
+			self.monitorCadence = 20
 		self.exit = False
 		self.logData = { } 
 		
@@ -306,7 +377,7 @@ class domeSensor2():
 			self.readTemp()
 			self.readHumidity()
 			self.readPressure()
-			print(self.name + "monitor: ", self.temperature, self.humidity, self.pressure)
+			print(self.name + "monitor: ", self.temperature, self.humidity, self.pressure, flush=True)
 			time.sleep(self.monitorCadence)
 		
 	def startMonitor(self):
@@ -314,26 +385,30 @@ class domeSensor2():
 		self.monitorThread.start()
 			
 	def killMonitor(self):
-		print("stopping %s monitor."%self.name)
+		print("stopping %s monitor."%self.name, flush=True)
 		self.exit = True
 
 class IRSensor(): 
-		def __init__(self, name = "IR"):
+		def __init__(self, name = "IR", config={}):
 			self.logData = { }
 			self.monitorCadence = 10
 			self.skytemperature = -999
 			self.ambienttemperature = -999
 			self.exit = False
 			self.name = name
+			try: 
+				self.monitorCadence = config['cadence']
+			except KeyError:
+				self.monitorCadence = 20
 			
 		def readSky(self):
 			try: 
 				output = subprocess.check_output(['/home/pi/code/meteopi/readTsky']).decode('UTF-8')
 				self.skytemperature = round(float(output.split('\n')[0]),1)
 			except Exception as e:
-				print(e)
+				print(e, flush=True)
 				self.skytemperature = -999	
-			self.logData['IRsky'] = self.skytemperature	
+			self.logData['sky'] = self.skytemperature	
 			return self.skytemperature
 			
 		def readAmb(self):
@@ -343,14 +418,14 @@ class IRSensor():
 			except Exception as e:
 				print(e)
 				self.ambienttemperature = -999
-			self.logData['IRambient'] = self.ambienttemperature	
+			self.logData['ambient'] = self.ambienttemperature	
 			return self.ambienttemperature
 			
 		def monitor(self):
 			while not self.exit:
 				self.readSky()
 				self.readAmb()
-				print(self.name + "monitor: ", self.skytemperature, self.ambienttemperature)
+				print(self.name + "monitor: ", self.skytemperature, self.ambienttemperature, flush=True)
 				time.sleep(self.monitorCadence)
 		
 		def startMonitor(self):
@@ -358,7 +433,7 @@ class IRSensor():
 			self.monitorThread.start()
 			
 		def killMonitor(self):
-			print("stopping %s monitor."%self.name)
+			print("stopping %s monitor."%self.name, flush=True)
 			self.exit = True
 
 
@@ -378,7 +453,7 @@ class domeSensor():
 		self.logData = { }
 		
 	def killMonitor(self):
-		print("stopping %s monitor."%self.name)
+		print("stopping %s monitor."%self.name, flush=True)
 		self.exit = True
 
 	def setFan(self, fan):
@@ -398,7 +473,7 @@ class domeSensor():
 			time.sleep(2.0)
 		except Exception as error:
 			dhtDevice.exit()
-			print("Re-initiliasing dome sensor")
+			print("Re-initiliasing dome sensor", flush=True)
 			time.sleep(5)
 			self.dhtDevice = adafruit_dht.DHT(board.D17)
 		self.logData['temperature'] = self.temperature
@@ -424,7 +499,7 @@ class domeSensor():
 		while not self.exit:
 			self.readTemp()
 			self.readHumidity()
-			print(self.name + "monitor: ", self.temperature, self.humidity)
+			print(self.name + "monitor: ", self.temperature, self.humidity, flush=True)
 			if self.fan: 
 				for fan in self.attachedFans:
 					fan.checkFan(self.temperature)

@@ -4,7 +4,9 @@ logName=skywatch.log
 logTemp=temp.log
 archivePath=/home/pi/share/logs/
 
+echo `date`
 sudo systemctl stop skywatch.service
+
 cp $logPath$logName $logPath$logTemp
 today=$(date +'%Y%m%d')
 archive=skywatch$today.log
