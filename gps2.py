@@ -99,13 +99,16 @@ try:
 				if fields[0] == "$GNRMC": RMClines.append(line)
 			
 			fields = RMClines[-1].split(',')
-			latitude = float(fields[3])
-			latCardinal = fields[4]
-			longitude = float(fields[5])
-			lonCardinal = fields[6]
-			timeRMC = float(fields[1])
-			dateRMC = fields[9]
-			print(toDateString(dateRMC), toTimeString(timeRMC), toDecimal(latitude) + latCardinal, toDecimal(longitude)+ lonCardinal)
+			status = fields[2]
+			if (status=='V'): print ("no GPS fix")
+			else: 
+				latitude = float(fields[3])
+				latCardinal = fields[4]
+				longitude = float(fields[5])
+				lonCardinal = fields[6]
+				timeRMC = float(fields[1])
+				dateRMC = fields[9]
+				print(toDateString(dateRMC), toTimeString(timeRMC), toDecimal(latitude) + latCardinal, toDecimal(longitude)+ lonCardinal)
 			data =""
 		time.sleep(10)
 
