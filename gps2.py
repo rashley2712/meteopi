@@ -91,6 +91,7 @@ try:
 		while ser.inWaiting() > 0:
 			data += ser.read(ser.inWaiting()).decode()
 		if len(data) > 1:
+			# print("len:", len(data))
 			# print("Response:", data)
 			lines = data.split('\n')
 			RMClines = []
@@ -99,16 +100,22 @@ try:
 				if fields[0] == "$GNRMC": RMClines.append(line)
 			
 			fields = RMClines[-1].split(',')
-			status = fields[2]
-			if (status=='V'): print ("no GPS fix")
-			else: 
-				latitude = float(fields[3])
-				latCardinal = fields[4]
-				longitude = float(fields[5])
-				lonCardinal = fields[6]
-				timeRMC = float(fields[1])
-				dateRMC = fields[9]
-				print(toDateString(dateRMC), toTimeString(timeRMC), toDecimal(latitude) + latCardinal, toDecimal(longitude)+ lonCardinal)
+			if len(fields) < 10:
+				fields = RMClines[-2].split(',')
+			
+			try:
+				status = fields[2]
+				if (status=='V'): print ("no GPS fix")
+				else: 
+					latitude = float(fields[3])
+					latCardinal = fields[4]
+					longitude = float(fields[5])
+					lonCardinal = fields[6]
+					timeRMC = float(fields[1])
+					dateRMC = fields[9]
+					print(toDateString(dateRMC), toTimeString(timeRMC), toDecimal(latitude) + latCardinal, toDecimal(longitude)+ lonCardinal)
+			except:
+					print("...waiting...")
 			data =""
 		time.sleep(10)
 

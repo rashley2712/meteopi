@@ -59,31 +59,38 @@ if __name__ == "__main__":
 	print(config.getProperties())
 	# config.refresh()
 	
+
+	sensors = []
+	
 	# Initialiase the log file
 	logger = skywatch.logger()
 	meteouploader = skywatch.meteoUploader(config = config.meteoUpload)
 	#webber = skywatch.webController(baseURL = config.baseURL)
 	#webber = skywatch.webController()
 	# Initiliase temperature sensors and fans
-	domeSensor = skywatch.domeSensor2(config = config.domeTempSensor)
-	exteriorSensor = skywatch.IRSensor(config = config.skySensor)
+	print("Dome sensor info:", config.domeTempSensor)
+	if hasattr(config, "domeTempSensor"):
+		if (config.domeTempSensor['type'] == "BME280"):
+			domeSensor = skywatch.domeSensor2(config = config.domeTempSensor)
+			sensors.append(domeSensor)
+	if hasattr(config, "skySensor"):
+		IRSensor = skywatch.IRSensor(config = config.skySensor)
+		sensors.append(IRSensor)
 	cpuSensor = skywatch.cpuSensor(config = config.cpuSensor)
+	sensors.append(cpuSensor)
+
 	#exteriorSensor = skywatch.exteriorSensor()
 	#caseFan = skywatch.fanController(config.caseFan)
 	#domeFan = skywatch.fanController(config.domeFan)
 	#domeSensor.attachFan(caseFan)
 	#domeSensor.attachFan(domeFan)
-	cpuSensor.startMonitor()
-	domeSensor.startMonitor()
-	exteriorSensor.startMonitor()
-	logger.attachSensor(cpuSensor)
-	logger.attachSensor(domeSensor)
-	logger.attachSensor(exteriorSensor)
 
-	meteouploader.attachSensor(cpuSensor)
-	meteouploader.attachSensor(domeSensor)
-	meteouploader.attachSensor(exteriorSensor)
-	
+	for s in sensors:
+		s.startMonitor()
+		logger.attachSensor(s)
+		meteouploader.attachSensor(s)
+
+
 	#webber.attachSensor(cpuSensor)
 	#webber.attachSensor(domeSensor)
 	#webber.attachSensor(exteriorSensor)

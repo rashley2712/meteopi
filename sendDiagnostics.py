@@ -104,6 +104,15 @@ if __name__ == "__main__":
 	with open('/proc/version', 'r') as f:
 		OSversion = f.readline().strip()
 	diagnostics['osversion'] = OSversion
+
+	# Get GPS location from gps log file
+	try:
+		logFile = open(config['GPSlog'], 'rt')
+		for line in logFile:
+			lastLine = line
+		diagnostics['GPS'] = lastLine.strip()
+	except Exception as e:
+		print("No GPS log file.")
 	
 	print(json.dumps(diagnostics, indent=4))
 	
