@@ -9,7 +9,7 @@ from systemd import journal
 import RPi.GPIO as GPIO # Import Raspberry Pi GPIO library
 import ephem
 import json
-import skywatch
+import config
 import socket
 
 def fetchCameraConfig(URL):
@@ -102,7 +102,7 @@ if __name__ == "__main__":
 	
 	service = args.service
 
-	config = skywatch.config(filename=args.config)
+	config = config.config(filename=args.config)
 	config.load()
 	#print(config.getProperties())
 	
