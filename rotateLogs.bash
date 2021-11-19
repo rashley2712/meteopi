@@ -7,13 +7,15 @@ archivePath=/home/pi/share/logs/
 echo `date`
 sudo systemctl stop skywatch.service
 
-cp $logPath$logName $logPath$logTemp
+sudo cp $logPath$logName $logPath$logTemp
 today=$(date +'%Y%m%d')
 archive=skywatch$today.log
 echo Archiving log file to: $archivePath$archive
-mv $logPath$logTemp $archivePath$archive
+sudo mv $logPath$logTemp $archivePath$archive
+sudo chown pi $archivePath$archive
 gzip $archivePath$archive
 
-rm $logPath$logName
-touch $logPath$logName
+sudo rm $logPath$logName
+sudo touch $logPath$logName
+sudo chown pi $logPath$logName
 sudo systemctl start skywatch.service
