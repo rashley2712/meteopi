@@ -9,7 +9,7 @@ from systemd import journal
 import RPi.GPIO as GPIO # Import Raspberry Pi GPIO library
 import ephem
 import json
-import config
+import config, imagedata
 import socket
 
 def fetchCameraConfig(URL):
@@ -155,10 +155,6 @@ if __name__ == "__main__":
 			imageCommand.append('-ae')
 			imageCommand.append('64,0x000000,0xffffff')
 
-		#imageCommand.append('--awb')	# Correct for removal of IR filter
-		#imageCommand.append('greyworld')	
-		#imageCommand.append('-a')	# Add annotation ...
-		#imageCommand.append('%Y-%m-%d %X')	# ... date and time
 		extraAnnotation = timeString
 		if mode=="night": extraAnnotation+= " N %ds"%int(expTime)
 		extraAnnotation+= " sun: %.0f moon: %.0f (%.0f%%)"%(ephemeris['sunElevation'], ephemeris['moonElevation'], ephemeris['moonIllumination'])
@@ -182,13 +178,33 @@ if __name__ == "__main__":
 		end = datetime.datetime.now()
 		onLED()
 		duration = end - start
-		midpoint = start + duration/2
-		information("time elapsed %s"%str(duration))
+		information("time elapsed during camera operation %s"%str(duration))
 		
 		destinationFilename = os.path.join(config.cameraoutputpath, timeString + "_" + hostname + ".jpg")
 		information("moving the capture to %s"%destinationFilename)
 		os.rename("/tmp/camera.jpg", destinationFilename)
-		if not args.test: uploadToServer(destinationFilename, config.camerauploadURL)
+
+
+        # Write image metadata
+		imageData = imagedata.imagedata()
+		imageData.setProperty("file", destinationFilename)
+		imageData.setProperty("date", timeString)
+		imageData.setProperty("location", locationInfo)
+		imageData.setProperty("moon", { "elevation": "%.1f"%ephemeris['moonElevation'], "illumination":  "%.1f"%ephemeris['moonIllumination']} )
+		imageData.setProperty("sun", { "elevation": "%.1f"%ephemeris['sunElevation'] } )
+		
+		imageData.setFilename(destinationFilename.split('.')[0] + ".json")
+		imageData.save()
+
+		if not args.test: 
+			information("performing postprocessing of the image...")
+			#from subprocess import Popen, PIPE
+			#p = Popen([os.path.join(config.installpath, 'imageProcessor.py')], stdin=PIPE, stdout=PIPE, stderr=PIPE)
+			#output, err = p.communicate(b"input data that is passed to subprocess' stdin")
+			#rc = p.returncode
+			#print(output)
+			subprocess.call(os.path.join(config.installpath, 'imageProcessor.py'))
+			#uploadToServer(destinationFilename, config.camerauploadURL)
 		if args.exit: sys.exit()
 
 		end = datetime.datetime.now()
