@@ -330,8 +330,9 @@ class domeSensor2():
 		# Initialise the bme280
 		i2c = board.I2C()  # uses board.SCL and board.SDA
 		self.active = False
+		decAddress = int(config['address'], 16)
 		try:
-			self.bme280 = adafruit_bme280.Adafruit_BME280_I2C(i2c, address = 0x77)
+			self.bme280 = adafruit_bme280.Adafruit_BME280_I2C(i2c, address = decAddress)
 		except ValueError:
 			print("Sensor BME280 failed!", flush=True)
 			self.active = False
