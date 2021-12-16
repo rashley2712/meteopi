@@ -99,6 +99,9 @@ if __name__ == "__main__":
 			subprocess.call(scaleCommand)
 			# Reload the re-scaled image
 			image = Image.open(newFilename)
+
+	print("Image size is now: ", image.size)
+	
 		
 	
 

@@ -294,7 +294,8 @@ class cpuSensor():
 			self.monitorCadence = 20
 		self.logData = { } 
 		
-	def setFan(self, fan):
+
+	def attachFan(self, fan):
 		self.fan = True
 		self.attachedFan = fan
 		
@@ -335,6 +336,8 @@ class domeSensor2():
 			print("Sensor BME280 failed!", flush=True)
 			self.active = False
 		
+		self.fan = False
+		self.attachedFans = []
 		self.temperature = -999
 		self.humidity = -999
 		self.pressure = -999
@@ -346,6 +349,10 @@ class domeSensor2():
 			self.monitorCadence = 20
 		self.exit = False
 		self.logData = { } 
+
+	def attachFan(self, fan):
+		self.attachedFans.append(fan)
+		self.fan = True
 		
 	def readTemp(self):
 		try:
@@ -378,7 +385,13 @@ class domeSensor2():
 			self.readHumidity()
 			self.readPressure()
 			print(self.name + "monitor: ", self.temperature, self.humidity, self.pressure, flush=True)
+			if self.fan: 
+				for fan in self.attachedFans:
+					fan.checkFan(self.temperature)
+	
 			time.sleep(self.monitorCadence)
+	
+
 		
 	def startMonitor(self):
 		self.monitorThread = threading.Thread(name='non-block', target=self.monitor)
@@ -512,6 +525,7 @@ class domeSensor():
 
 class fanController():
 	def __init__(self, config):
+		print("config:", config)
 		self.GPIO = config['GPIO']
 		self.name = config['name']
 		self.triggerTemperature = config['temperatureUpper']
@@ -523,11 +537,11 @@ class fanController():
 	def checkFan(self, temp):
 		if temp>self.triggerTemperature: 
 			if not self.fanOn:
-				print("Turning on " + self.name + " fan...")
+				print("Input temperature is above %d... Turning on %s fan."%(self.triggerTemperature, self.name), flush=True)
 				self.on()
 		if temp<self.triggerTemperature-self.hysterisis:
 			if self.fanOn:
-				print("Turning the " + self.name + " fan off...")
+				print("Input temperature is below %d... Turning off %s fan."%(self.triggerTemperature-self.hysterisis, self.name), flush=True)
 				self.off()
 		
 	def on(self):
@@ -542,46 +556,3 @@ class fanController():
 		if self.fanOn: self.off()
 		else: self.on()
 	
-
-class config():
-	def __init__(self, filename="meteopi.cfg", debug=False):
-		self._db = {}
-		self.filename = filename
-		self._debug = debug
-		self._json = {}
-		self._local = False
-		self._logger = None
-		self._service = False
-		
-	def load(self):
-		configFile = open(self.filename, 'rt')
-		self._json = json.loads(configFile.read())
-		configFile.close()
-		self.setProperties()
-		
-	def setProperties(self):
-		for key in self._json.keys():
-			print(key, ":", self._json[key])
-			setattr(self, key, self._json[key])
-		
-	def getProperties(self):
-		print("I have the following properties")
-		self._propertyList = []
-		for key in self.__dict__.keys():
-			if not key.startswith('_'): self._propertyList.append(key)
-		return self._propertyList
-	
-	def refresh(self):
-		configURL = os.path.join(self.baseURL, "runtime.cfg")
-		if self.local: configURL = os.path.join(self.localURL, "runtime.cfg")
-		print("Fetching config from " + configURL) 
-		response = requests.get(configURL)
-		if response.status_code != 200: 
-			debugOut(str(response.status_code) + ": " +  response.reason)
-			return -1 
-		data = json.loads(response.text)
-		response.close()
-		self.db = data
-		self.setProperties()
-		return
-

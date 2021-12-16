@@ -203,7 +203,12 @@ if __name__ == "__main__":
 			#output, err = p.communicate(b"input data that is passed to subprocess' stdin")
 			#rc = p.returncode
 			#print(output)
-			subprocess.call(os.path.join(config.installpath, 'imageProcessor.py'))
+			processorCommand = [ os.path.join(config.installpath, "imageProcessor.py"), "-c" , args.config, "-f", destinationFilename ] 
+			commandLine =""
+			for s in processorCommand:
+				commandLine+= s + " "
+			print("Running:", commandLine, flush=True)
+			subprocess.call(processorCommand)
 			#uploadToServer(destinationFilename, config.camerauploadURL)
 		if args.exit: sys.exit()
 

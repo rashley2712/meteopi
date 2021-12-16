@@ -8,7 +8,7 @@ import RPi.GPIO as GPIO # Import Raspberry Pi GPIO library
 import logging
 from systemd import journal
 import json, sys, os, requests
-import skywatch
+import skywatch, config    # These are libraries that are part of meteopi
 import threading
 import signal
 
@@ -50,10 +50,10 @@ if __name__ == "__main__":
 		log = logging.getLogger('skywatch.service')
 		log.addHandler(journal.JournaldLogHandler())
 		log.setLevel(logging.INFO)
-		logLine = "Starting the skywatch system daemon."
+		logLine = "Starting the skyWATCH system daemon."
 		log.info(logLine)
 	
-	config = skywatch.config(filename=args.config)
+	config = config.config(filename=args.config)
 	config.load()
 	if local: config.local = True
 	print(config.getProperties())
@@ -79,12 +79,22 @@ if __name__ == "__main__":
 	cpuSensor = skywatch.cpuSensor(config = config.cpuSensor)
 	sensors.append(cpuSensor)
 
-	#exteriorSensor = skywatch.exteriorSensor()
-	#caseFan = skywatch.fanController(config.caseFan)
-	#domeFan = skywatch.fanController(config.domeFan)
-	#domeSensor.attachFan(caseFan)
-	#domeSensor.attachFan(domeFan)
+	
+	# Attach the fans
+	if config.caseFan!="none":
+		caseFan = skywatch.fanController(config.caseFan)
+		if config.caseFan['attachedTo'] == "cpuSensor":
+			cpuSensor.attachFan(caseFan)
+		if config.caseFan['attachedTo'] == "domeSensor":
+			domeSensor.attachFan(caseFan)
+	if config.domeFan!="none":
+		domeFan = skywatch.fanController(config.domeFan)
+		if config.domeFan['attachedTo'] == "cpuSensor":
+			cpuSensor.attachFan(domeFan)
+		if config.caseFan['attachedTo'] == "domeSensor":
+			domeSensor.attachFan(domeFan)
 
+	# Create the logging services
 	for s in sensors:
 		s.startMonitor()
 		logger.attachSensor(s)
