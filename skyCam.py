@@ -1,5 +1,6 @@
 #!/usr/bin/env python3
 import argparse
+from posixpath import basename
 import requests
 import time
 import datetime
@@ -89,7 +90,7 @@ def information(message):
 	global log
 	if service: log.info(message)
 	else: 
-		print(message)
+		print(message, flush=True)
 	return
 
 if __name__ == "__main__":
@@ -136,6 +137,7 @@ if __name__ == "__main__":
 		cadence = cameraConfig['cadence']
 		
 		timeString = beginning.strftime("%Y%m%d_%H%M%S")
+		dbTimeString = beginning.strftime("%Y-%m-%d %H:%M:%S")
 		# Execute raspistill and time the execution
 		imageCommand = ['raspistill']
 		
@@ -184,11 +186,11 @@ if __name__ == "__main__":
 		information("moving the capture to %s"%destinationFilename)
 		os.rename("/tmp/camera.jpg", destinationFilename)
 
-
         # Write image metadata
 		imageData = imagedata.imagedata()
-		imageData.setProperty("file", destinationFilename)
-		imageData.setProperty("date", timeString)
+		imageData.setProperty("hostname", hostname)
+		imageData.setProperty("file", os.path.basename(destinationFilename))
+		imageData.setProperty("date", dbTimeString)
 		imageData.setProperty("location", locationInfo)
 		imageData.setProperty("moon", { "elevation": "%.1f"%ephemeris['moonElevation'], "illumination":  "%.1f"%ephemeris['moonIllumination']} )
 		imageData.setProperty("sun", { "elevation": "%.1f"%ephemeris['sunElevation'] } )
@@ -197,19 +199,13 @@ if __name__ == "__main__":
 		imageData.save()
 
 		if not args.test: 
-			information("performing postprocessing of the image...")
-			#from subprocess import Popen, PIPE
-			#p = Popen([os.path.join(config.installpath, 'imageProcessor.py')], stdin=PIPE, stdout=PIPE, stderr=PIPE)
-			#output, err = p.communicate(b"input data that is passed to subprocess' stdin")
-			#rc = p.returncode
-			#print(output)
+			information("image post processing...")			
 			processorCommand = [ os.path.join(config.installpath, "imageProcessor.py"), "-c" , args.config, "-f", destinationFilename ] 
 			commandLine =""
 			for s in processorCommand:
 				commandLine+= s + " "
-			print("Running:", commandLine, flush=True)
+			information("calling: %s"%commandLine)
 			subprocess.call(processorCommand)
-			#uploadToServer(destinationFilename, config.camerauploadURL)
 		if args.exit: sys.exit()
 
 		end = datetime.datetime.now()

@@ -31,6 +31,8 @@ class imagedata():
 		for key in self._json.keys():
 			print(str(key) + ": " + str(self._json[key]))
 
+	def getJSON(self):
+		return self._json
 
 	def setProperties(self):
 		for key in self._json.keys():

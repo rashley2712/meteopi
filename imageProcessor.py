@@ -16,6 +16,40 @@ from PIL.ExifTags import TAGS
 def debugOut(message):
 	if debug: print(message, flush=True)
 
+def uploadMetadata(jsonData, URL):
+		success = False
+		information("Sending JSON payload to: %s"%URL)
+		try: 
+			response = requests.post(URL, json=jsonData)
+			responseJSON = json.loads(response.text)
+			print(json.dumps(responseJSON, indent=4))
+			if responseJSON['status'] == 'success': success = True
+			response.close()
+		except Exception as e: 
+			success = False
+			print(e, flush=True)
+				
+		print(success, flush=True)
+		return success
+
+
+def uploadToServer(imageFilename, URL):
+	destinationURL = URL
+	files = {'camera': open(imageFilename, 'rb')}
+	headers = { 'Content-type': 'image/jpeg'}
+	try:
+		response = requests.post(destinationURL, files=files)
+		information("SkyWATCH server's response code: " + str(response.status_code))
+		response.close()
+	except Exception as e: 
+		information("error: " + repr(e))
+		return 
+	information("Uploaded image to %s\n"%destinationURL) 
+	return
+   
+def information(message):
+	print(message, flush=True)
+	return
 
 def showTags(tags):
 	for key in tags.keys():
@@ -62,14 +96,15 @@ if __name__ == "__main__":
 	size = image.size
 	imageData.setProperty("width", size[0])
 	imageData.setProperty("height", size[1])
-	imageData.save()		
-	if debug: print("size:", size)
+	debugOut("size: %s"%str(size))
 	index = str(exif_data).find("exp=")
 	end = str(exif_data).find(' ', index)
 	expTime = float(str(exif_data)[index+4: end+1])
+	imageData.setProperty("exposure", expTime/1E6)
 	debugOut("Exposure time %.2f seconds"%(expTime/1E6))
 	debugOut("Bands: %s"%str(image.getbands()))
-
+	imageData.save()		
+	
 	lowBandwidth = False
 	try:
 		if config.bandwidthlimited==1: 
@@ -86,7 +121,6 @@ if __name__ == "__main__":
 			newFilename = imageFile['filename'].split('.')[0] + "_small.jpg"
 			imageData.setFilename(os.path.splitext(newFilename)[0] + ".json")
 			imageData.setProperty("resized", True)
-			imageData.setProperty("file", os.path.splitext(newFilename)[0] + ".json")
 			imageData.setProperty("width", int(size[0]/4))
 			imageData.setProperty("height", int(size[1]/4))
 			imageData.save()
@@ -99,10 +133,14 @@ if __name__ == "__main__":
 			subprocess.call(scaleCommand)
 			# Reload the re-scaled image
 			image = Image.open(newFilename)
+			imageFile['filename'] = newFilename
 
-	print("Image size is now: ", image.size)
-	
-		
+	information("Image size is now: %s"%str(image.size))
+	# If upload is set... upload to skyWATCH server
+	URL = config.camerauploadURL
+	uploadToServer(imageFile['filename'], URL)	
+
+	uploadMetadata(imageData.getJSON(), "https://skywatching.eu/imagedata")
 	
 
 	if args.preview: 
