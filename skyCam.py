@@ -126,6 +126,7 @@ if __name__ == "__main__":
 
 	while True:
 		beginning = datetime.datetime.now()
+		config.load()
 		offLED()
 		# cameraConfig = fetchCameraConfig(config.cameraparameterURL)
 		ephemeris = getSunMoon(locationInfo)

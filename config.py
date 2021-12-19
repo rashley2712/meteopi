@@ -17,6 +17,11 @@ class config():
 		self._json = json.loads(configFile.read())
 		configFile.close()
 		self.setProperties()
+
+	def save(self):
+		configFile = open(self.filename, "wt")
+		json.dump(self._json, configFile, indent=4)
+		configFile.close()
 		
 	def setProperties(self):
 		for key in self._json.keys():

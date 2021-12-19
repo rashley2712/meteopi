@@ -9,6 +9,21 @@ import config, imagedata
 from PIL import Image
 from PIL.ExifTags import TAGS
 
+def plotHistoRGB(histogram):
+	import matplotlib.pyplot
+	matplotlib.pyplot.bar(numpy.arange(0,255), histogram[0], color='r', alpha=0.25)
+	matplotlib.pyplot.bar(numpy.arange(0,255), histogram[1], color='g', alpha=0.25)
+	matplotlib.pyplot.bar(numpy.arange(0,255), histogram[2], color='b', alpha=0.25)
+	matplotlib.pyplot.draw()
+	matplotlib.pyplot.show()
+
+def plotHistoL(histogram):
+	import matplotlib.pyplot
+	matplotlib.pyplot.bar(numpy.arange(0,256), histogram, color='k', alpha=0.25)
+	matplotlib.pyplot.draw()
+	matplotlib.pyplot.show()
+
+
 def getHistoRGB(image):
 	histogram = image.histogram()
 
@@ -25,7 +40,11 @@ def getHistoL(image):
 
 
 def debugOut(message):
-	if debug: print(message, flush=True)
+	if debug: print("DEBUG: %s"%message, flush=True)
+
+
+def information(message):
+	print(message, flush=True)
 
 def uploadMetadata(jsonData, URL):
 		success = False
@@ -73,7 +92,7 @@ if __name__ == "__main__":
 	parser.add_argument('-c', '--config', type=str, default='/home/pi/code/meteopi/local.cfg', help='Config file.' )
 	parser.add_argument('--debug', action="store_true", default=False, help='Add debug information to the output.' )
 	parser.add_argument('--test', action="store_true", default=False, help='Test mode. Don''t upload any data.' )
-	parser.add_argument('--preview', action="store_true", default=False, help='Show preview.' )
+	parser.add_argument('--display', action="store_true", default=False, help='Show preview and graphs.' )
 	
 	args = parser.parse_args()
 	debug = args.debug
@@ -103,6 +122,10 @@ if __name__ == "__main__":
 	imageData.show()
 	
 	image = Image.open(imageFile["filename"])
+	if args.display: 
+		print("Rendering a preview to the X-session ... will take about 30s")
+		image.show()
+
 	exif_data = image._getexif()
 	if debug: showTags(exif_data)
 	size = image.size
@@ -111,9 +134,9 @@ if __name__ == "__main__":
 	debugOut("size: %s"%str(size))
 	index = str(exif_data).find("exp=")
 	end = str(exif_data).find(' ', index)
-	expTime = float(str(exif_data)[index+4: end+1])
-	imageData.setProperty("exposure", expTime/1E6)
-	debugOut("Exposure time %.2f seconds"%(expTime/1E6))
+	expTime = float(str(exif_data)[index+4: end+1])/1E6
+	imageData.setProperty("exposure", expTime)
+	debugOut("Exposure time %.2f seconds"%(expTime))
 	debugOut("Bands: %s"%str(image.getbands()))
 	imageData.save()		
 	
@@ -162,22 +185,27 @@ if __name__ == "__main__":
 	lower = 2000
 	
 	histogram = getHistoRGB(image)
-	#plotHistoRGB(histogram)
+	if args.display: plotHistoRGB(histogram)
 	image = image.crop((left, upper, right, lower))
 	image = image.convert('L')
 	data = image.getdata()
 	
 	histogram = getHistoL(image)
 	# print(histogram, len(histogram))
-	if debug: plotHistoL(histogram)
+	if args.display: plotHistoL(histogram)
 	peak = numpy.argmax(histogram)
 	median = numpy.median(data)
 	mean = numpy.mean(data)
 	min = numpy.min(data)
 	max = numpy.max(data)
 	print("Peak: %d, Median: %d, Mean: %.1f, Min: %d, Max: %d"%(peak, median, mean, min, max))
-	if args.preview: 
-		print("Rendering a preview to the X-session ... will take about 30s")
-		image.show()
 
+	if median > 240: 
+		newExpTime = round(expTime * .75, 2)
+		information("image is saturated, suggesting exposure goes from %.2f to %.2f seconds."%(expTime, newExpTime))
+		config.camera['night']['expTime'] = newExpTime
+		print(config.camera['night'])
+		config.save()
+
+	
 	
