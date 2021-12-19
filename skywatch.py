@@ -101,46 +101,29 @@ class meteoUploader:
 		return success
 
 
-class webController:
-	def __init__(self, baseURL = "http://rashley.local", timezone="utc"):
-		self.statusURL = "http://rashley.local/piStatus"
-		self.baseURL = baseURL
+class statusController:
+	def __init__(self, config = {}):
+		print("config", config)
+		self.URL = config['URL']
 		self.identity = socket.gethostname()
 		self.status = {self.identity: {}}
-		self.sensors = []
 		self.exit = False
-		self.meteoCadence = 60
-		self.systemCadence = 300
+		self.monitorCadence = config['cadence']
 		self.name = "web uploader"
-		self.timezone = timezone
+		self.timezone = "UTC"
 
-	def attachSensor(self, sensor):
-		self.sensors.append(sensor)
-		
-	def sendMeteo(self):
-		self.status = {self.identity: {}}
-		sensorJSON = {}
-		timeStamp = datetime.datetime.now()
-		timeStampStr = timeStamp.strftime("%Y-%m-%d %H:%M:%S")
-		sensorJSON['timestamp'] = timeStampStr
-		sensorJSON['timezone'] = self.timezone
-		for sensor in self.sensors:
-			sensorJSON[sensor.name] = sensor.logData
-		self.status[self.identity]['log'] = sensorJSON
-		print("Sending..." + json.dumps(self.status, indent=4), flush=True)
-		self.sendData(os.path.join(self.baseURL, "piStatus"), self.status)
 
 	def sendSystem(self):
-		self.status = {self.identity: {}}
+		self.status = { "hostname" : self.identity}
+		print("generating system info", flush=True)
 		systemJSON = {}
 		timeStamp = datetime.datetime.now()
 		timeStampStr = timeStamp.strftime("%Y-%m-%d %H:%M:%S")
-		systemJSON = systemInfo().systemInfo
-		systemJSON['timestamp'] = timeStampStr
-		systemJSON['timezone'] = self.timezone
-		self.status[self.identity]['system'] = systemJSON 
-		print("Sending..." + json.dumps(self.status, indent=4, flush=True))
-		self.sendData(os.path.join(self.baseURL, "piStatus"), self.status)
+		self.status['system'] = systemInfo().systemInfo
+		self.status['date'] = timeStampStr
+		self.status['timezone'] = self.timezone
+		print("Sending..." + json.dumps(self.status, indent=4), flush=True)
+		self.sendData(self.URL, self.status)
 
 	def sendData(self, URL, jsonData):
 		success = False
@@ -157,21 +140,15 @@ class webController:
 		print(success, flush=True)
 		return success
 
-	def meteoMonitor(self):
+	def monitor(self):
 		while not self.exit:
-			self.sendMeteo()
-			time.sleep(self.meteoCadence)
-
-	def systemMonitor(self):
-		while not self.exit:
+			print("status monitor", flush=True)
 			self.sendSystem()
-			time.sleep(self.systemCadence)
+			time.sleep(self.monitorCadence)
 
 	def startMonitor(self):
-		self.meteoThread = threading.Thread(name='non-block', target=self.meteoMonitor)
-		self.meteoThread.start()
-		time.sleep(10)
-		self.systemThread = threading.Thread(name='non-block', target=self.systemMonitor)
+		self.systemThread = threading.Thread(name='non-block', target=self.monitor)
+		print("starting status monitor", flush=True)
 		self.systemThread.start()
 		
 

@@ -123,7 +123,6 @@ if __name__ == "__main__":
 			imageData.setProperty("resized", True)
 			imageData.setProperty("width", int(size[0]/4))
 			imageData.setProperty("height", int(size[1]/4))
-			imageData.save()
 			scaleCommand = ["convert", imageFile['filename'], '-resize', '1014', newFilename]
 			#scaleCommand.append()
 			commandLine =""
@@ -134,6 +133,9 @@ if __name__ == "__main__":
 			# Reload the re-scaled image
 			image = Image.open(newFilename)
 			imageFile['filename'] = newFilename
+			imageData.setProperty("file", os.path.basename(newFilename))
+			imageData.save()
+		
 
 	information("Image size is now: %s"%str(image.size))
 	# If upload is set... upload to skyWATCH server
