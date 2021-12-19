@@ -16,8 +16,8 @@ class systemInfo:
 		self.systemInfo['localip'] = ipAddress
 
 		# Get WIFI SSID
-		output = subprocess.check_output(['sudo', 'iwgetid']).decode('UTF-8')
 		try: 
+			output = subprocess.check_output(['sudo', 'iwgetid']).decode('UTF-8')
 			ssid = output.split('"')[1]
 		except:
 			ssid = "none"	
