@@ -2,15 +2,26 @@
 import requests
 import argparse
 import json
-import time
-import datetime
+import numpy
 import subprocess
-import sys
 import os
 import config, imagedata
-from systemd import journal
-from PIL import Image,ImageDraw
+from PIL import Image
 from PIL.ExifTags import TAGS
+
+def getHistoRGB(image):
+	histogram = image.histogram()
+
+	r_histo = histogram[0:255]
+	g_histo = histogram[256:511]
+	b_histo = histogram[512:767]
+
+	return (r_histo, g_histo, b_histo)
+
+def getHistoL(image):
+	histogram = image.histogram()
+
+	return (histogram)
 
 
 def debugOut(message):
@@ -61,6 +72,7 @@ if __name__ == "__main__":
 	parser.add_argument('-f', '--filename', type=str, default="latest", help='Filename to process (or look for the latest).' )
 	parser.add_argument('-c', '--config', type=str, default='/home/pi/code/meteopi/local.cfg', help='Config file.' )
 	parser.add_argument('--debug', action="store_true", default=False, help='Add debug information to the output.' )
+	parser.add_argument('--test', action="store_true", default=False, help='Test mode. Don''t upload any data.' )
 	parser.add_argument('--preview', action="store_true", default=False, help='Show preview.' )
 	
 	args = parser.parse_args()
@@ -140,11 +152,30 @@ if __name__ == "__main__":
 	information("Image size is now: %s"%str(image.size))
 	# If upload is set... upload to skyWATCH server
 	URL = config.camerauploadURL
-	uploadToServer(imageFile['filename'], URL)	
-
-	uploadMetadata(imageData.getJSON(), "https://skywatching.eu/imagedata")
+	if not args.test: 
+		uploadToServer(imageFile['filename'], URL)	
+		uploadMetadata(imageData.getJSON(), "https://skywatching.eu/imagedata")
 	
-
+	left = 1000
+	right = 3000
+	upper = 1000
+	lower = 2000
+	
+	histogram = getHistoRGB(image)
+	#plotHistoRGB(histogram)
+	image = image.crop((left, upper, right, lower))
+	image = image.convert('L')
+	data = image.getdata()
+	
+	histogram = getHistoL(image)
+	# print(histogram, len(histogram))
+	if debug: plotHistoL(histogram)
+	peak = numpy.argmax(histogram)
+	median = numpy.median(data)
+	mean = numpy.mean(data)
+	min = numpy.min(data)
+	max = numpy.max(data)
+	print("Peak: %d, Median: %d, Mean: %.1f, Min: %d, Max: %d"%(peak, median, mean, min, max))
 	if args.preview: 
 		print("Rendering a preview to the X-session ... will take about 30s")
 		image.show()
