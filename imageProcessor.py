@@ -140,6 +140,34 @@ if __name__ == "__main__":
 	debugOut("Bands: %s"%str(image.getbands()))
 	imageData.save()		
 	
+	left = 1000
+	right = 3000
+	upper = 1000
+	lower = 2000
+	
+	histogram = getHistoRGB(image)
+	if args.display: plotHistoRGB(histogram)
+	croppedImage = image.crop((left, upper, right, lower))
+	croppedImage = croppedImage.convert('L')
+	data = croppedImage.getdata()
+	
+	histogram = getHistoL(croppedImage)
+	if args.display: plotHistoL(histogram)
+	peak = numpy.argmax(histogram)
+	median = numpy.median(data)
+	mean = numpy.mean(data)
+	min = numpy.min(data)
+	max = numpy.max(data)
+	print("Peak: %d, Median: %d, Mean: %.1f, Min: %d, Max: %d"%(peak, median, mean, min, max))
+
+	if median > 240: 
+		newExpTime = round(expTime * .75, 2)
+		information("image is saturated, suggesting exposure goes from %.2f to %.2f seconds."%(expTime, newExpTime))
+		config.camera['night']['expTime'] = newExpTime
+		print(config.camera['night'])
+		config.save()
+
+
 	lowBandwidth = False
 	try:
 		if config.bandwidthlimited==1: 
@@ -179,33 +207,6 @@ if __name__ == "__main__":
 		uploadToServer(imageFile['filename'], URL)	
 		uploadMetadata(imageData.getJSON(), "https://skywatching.eu/imagedata")
 	
-	left = 1000
-	right = 3000
-	upper = 1000
-	lower = 2000
-	
-	histogram = getHistoRGB(image)
-	if args.display: plotHistoRGB(histogram)
-	image = image.crop((left, upper, right, lower))
-	image = image.convert('L')
-	data = image.getdata()
-	
-	histogram = getHistoL(image)
-	# print(histogram, len(histogram))
-	if args.display: plotHistoL(histogram)
-	peak = numpy.argmax(histogram)
-	median = numpy.median(data)
-	mean = numpy.mean(data)
-	min = numpy.min(data)
-	max = numpy.max(data)
-	print("Peak: %d, Median: %d, Mean: %.1f, Min: %d, Max: %d"%(peak, median, mean, min, max))
-
-	if median > 240: 
-		newExpTime = round(expTime * .75, 2)
-		information("image is saturated, suggesting exposure goes from %.2f to %.2f seconds."%(expTime, newExpTime))
-		config.camera['night']['expTime'] = newExpTime
-		print(config.camera['night'])
-		config.save()
 
 	
 	
