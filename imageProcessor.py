@@ -167,6 +167,12 @@ if __name__ == "__main__":
 		print(config.camera['night'])
 		config.save()
 
+	if median <100: 
+		newExpTime = round(expTime * 1.2, 2)
+		information("image is under-exposed, suggesting exposure goes from %.2f to %.2f seconds."%(expTime, newExpTime))
+		config.camera['night']['expTime'] = newExpTime
+		print(config.camera['night'])
+		config.save()
 
 	lowBandwidth = False
 	try:
