@@ -170,12 +170,12 @@ if __name__ == "__main__":
 			newExpTime = expTime * 0.8
 			information("image is little bit saturated, suggesting exposure goes from %.4f to %.4f seconds."%(expTime, newExpTime))
 
-		if median <150: 
-			newExpTime = expTime * 1.2
+		if median <50: 
+			newExpTime = expTime * 1.5
+			information("image is a quite under-exposed, suggesting exposure goes from %.4f to %.4f seconds."%(expTime, newExpTime))
+		elif median <150: 
+			newExpTime = expTime * 1.25
 			information("image is a little under-exposed, suggesting exposure goes from %.4f to %.4f seconds."%(expTime, newExpTime))
-		elif median <100: 
-			newExpTime = expTime * 1.4
-			information("image is quite under-exposed, suggesting exposure goes from %.4f to %.4f seconds."%(expTime, newExpTime))
 		
 		config.camera['night']['expTime'] = newExpTime
 		config.save()
