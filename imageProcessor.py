@@ -140,44 +140,46 @@ if __name__ == "__main__":
 	debugOut("Bands: %s"%str(image.getbands()))
 	imageData.save()		
 	
-	left = 1000
-	right = 3000
-	upper = 1000
-	lower = 2000
-	
-	histogram = getHistoRGB(image)
-	if args.display: plotHistoRGB(histogram)
-	croppedImage = image.crop((left, upper, right, lower))
-	croppedImage = croppedImage.convert('L')
-	data = croppedImage.getdata()
-	
-	histogram = getHistoL(croppedImage)
-	if args.display: plotHistoL(histogram)
-	peak = numpy.argmax(histogram)
-	median = numpy.median(data)
-	mean = numpy.mean(data)
-	min = numpy.min(data)
-	max = numpy.max(data)
-	print("Peak: %d, Median: %d, Mean: %.1f, Min: %d, Max: %d"%(peak, median, mean, min, max))
 
-	newExpTime = expTime
-	if median > 240: 
-		newExpTime = expTime * 0.60
-		information("image is quite saturated, suggesting exposure goes from %.4f to %.4f seconds."%(expTime, newExpTime))
-	elif median>200:
-		newExpTime = expTime * 0.8
-		information("image is little bit saturated, suggesting exposure goes from %.4f to %.4f seconds."%(expTime, newExpTime))
+	if imageData.mode == "night":
+		left = 1000
+		right = 3000
+		upper = 1000
+		lower = 2000
+		
+		histogram = getHistoRGB(image)
+		if args.display: plotHistoRGB(histogram)
+		croppedImage = image.crop((left, upper, right, lower))
+		croppedImage = croppedImage.convert('L')
+		data = croppedImage.getdata()
+		
+		histogram = getHistoL(croppedImage)
+		if args.display: plotHistoL(histogram)
+		peak = numpy.argmax(histogram)
+		median = numpy.median(data)
+		mean = numpy.mean(data)
+		min = numpy.min(data)
+		max = numpy.max(data)
+		print("Peak: %d, Median: %d, Mean: %.1f, Min: %d, Max: %d"%(peak, median, mean, min, max))
 
-	if median <150: 
-		newExpTime = expTime * 1.2
-		information("image is a little under-exposed, suggesting exposure goes from %.4f to %.4f seconds."%(expTime, newExpTime))
-	elif median <100: 
-		newExpTime = expTime * 1.4
-		information("image is quite under-exposed, suggesting exposure goes from %.4f to %.4f seconds."%(expTime, newExpTime))
-	
-	config.camera['night']['expTime'] = newExpTime
-	config.save()
-	
+		newExpTime = expTime
+		if median > 240: 
+			newExpTime = expTime * 0.60
+			information("image is quite saturated, suggesting exposure goes from %.4f to %.4f seconds."%(expTime, newExpTime))
+		elif median>200:
+			newExpTime = expTime * 0.8
+			information("image is little bit saturated, suggesting exposure goes from %.4f to %.4f seconds."%(expTime, newExpTime))
+
+		if median <150: 
+			newExpTime = expTime * 1.2
+			information("image is a little under-exposed, suggesting exposure goes from %.4f to %.4f seconds."%(expTime, newExpTime))
+		elif median <100: 
+			newExpTime = expTime * 1.4
+			information("image is quite under-exposed, suggesting exposure goes from %.4f to %.4f seconds."%(expTime, newExpTime))
+		
+		config.camera['night']['expTime'] = newExpTime
+		config.save()
+		
 
 	lowBandwidth = False
 	try:
