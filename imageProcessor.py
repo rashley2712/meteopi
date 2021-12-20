@@ -160,19 +160,24 @@ if __name__ == "__main__":
 	max = numpy.max(data)
 	print("Peak: %d, Median: %d, Mean: %.1f, Min: %d, Max: %d"%(peak, median, mean, min, max))
 
+	newExpTime = expTime
 	if median > 240: 
-		newExpTime = round(expTime * .75, 2)
-		information("image is saturated, suggesting exposure goes from %.2f to %.2f seconds."%(expTime, newExpTime))
-		config.camera['night']['expTime'] = newExpTime
-		print(config.camera['night'])
-		config.save()
+		newExpTime = expTime * 0.60
+		information("image is quite saturated, suggesting exposure goes from %.4f to %.4f seconds."%(expTime, newExpTime))
+	elif median>200:
+		newExpTime = expTime * 0.8
+		information("image is little bit saturated, suggesting exposure goes from %.4f to %.4f seconds."%(expTime, newExpTime))
 
-	if median <100: 
-		newExpTime = round(expTime * 1.2, 2)
-		information("image is under-exposed, suggesting exposure goes from %.2f to %.2f seconds."%(expTime, newExpTime))
-		config.camera['night']['expTime'] = newExpTime
-		print(config.camera['night'])
-		config.save()
+	if median <150: 
+		newExpTime = expTime * 1.2
+		information("image is a little under-exposed, suggesting exposure goes from %.4f to %.4f seconds."%(expTime, newExpTime))
+	elif median <100: 
+		newExpTime = expTime * 1.4
+		information("image is quite under-exposed, suggesting exposure goes from %.4f to %.4f seconds."%(expTime, newExpTime))
+	
+	config.camera['night']['expTime'] = newExpTime
+	config.save()
+	
 
 	lowBandwidth = False
 	try:

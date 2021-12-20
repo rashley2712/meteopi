@@ -12,6 +12,17 @@ import ephem
 import json
 import config, imagedata
 import socket
+import threading
+
+def postProcessor(destinationFilename):
+	information("starting image post processing...(new thread)")			
+	processorCommand = [ os.path.join(config.installpath, "imageProcessor.py"), "-c" , args.config, "-f", destinationFilename ] 
+	commandLine =""
+	for s in processorCommand:
+		commandLine+= s + " "
+	information("calling: %s"%commandLine)
+	subprocess.Popen(processorCommand)
+
 
 def fetchCameraConfig(URL):
 	response = requests.get(URL)
@@ -175,7 +186,7 @@ if __name__ == "__main__":
 		cmdString = ""
 		for piece in imageCommand:
 			cmdString+= piece + " "
-		information("cmdString: %s"%cmdString)
+		information("running: %s"%cmdString)
 		start = datetime.datetime.now()
 		subprocess.call(imageCommand)	
 		end = datetime.datetime.now()
@@ -195,18 +206,14 @@ if __name__ == "__main__":
 		imageData.setProperty("location", locationInfo)
 		imageData.setProperty("moon", { "elevation": "%.1f"%ephemeris['moonElevation'], "illumination":  "%.1f"%ephemeris['moonIllumination']} )
 		imageData.setProperty("sun", { "elevation": "%.1f"%ephemeris['sunElevation'] } )
+		imageData.setProperty("mode", mode)
 		
 		imageData.setFilename(destinationFilename.split('.')[0] + ".json")
 		imageData.save()
 
 		if not args.test: 
-			information("image post processing...")			
-			processorCommand = [ os.path.join(config.installpath, "imageProcessor.py"), "-c" , args.config, "-f", destinationFilename ] 
-			commandLine =""
-			for s in processorCommand:
-				commandLine+= s + " "
-			information("calling: %s"%commandLine)
-			subprocess.call(processorCommand)
+			postThread = threading.Thread(name='non-block', target=postProcessor(destinationFilename))
+			postThread.start()
 		if args.exit: sys.exit()
 
 		end = datetime.datetime.now()
