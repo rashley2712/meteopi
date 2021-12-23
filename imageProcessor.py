@@ -142,8 +142,8 @@ if __name__ == "__main__":
 	
 
 	if imageData.mode == "night":
-		left = 1000
-		right = 3000
+		left = 1500
+		right = 2500
 		upper = 1000
 		lower = 2000
 		
@@ -169,9 +169,12 @@ if __name__ == "__main__":
 		elif median>200:
 			newExpTime = expTime * 0.8
 			information("image is little bit saturated, suggesting exposure goes from %.4f to %.4f seconds."%(expTime, newExpTime))
+		elif median>170:
+			newExpTime = expTime * 0.9
+			information("image is little bit saturated, suggesting exposure goes from %.4f to %.4f seconds."%(expTime, newExpTime))
 
 		if median <50: 
-			newExpTime = expTime * 1.5
+			newExpTime = expTime * 2.0
 			information("image is a quite under-exposed, suggesting exposure goes from %.4f to %.4f seconds."%(expTime, newExpTime))
 		elif median <150: 
 			newExpTime = expTime * 1.25
@@ -213,12 +216,12 @@ if __name__ == "__main__":
 			imageData.save()
 		
 
-	information("Image size is now: %s"%str(image.size))
+	information("Image size is: %s"%str(image.size))
 	# If upload is set... upload to skyWATCH server
 	URL = config.camerauploadURL
 	if not args.test: 
 		uploadToServer(imageFile['filename'], URL)	
-		uploadMetadata(imageData.getJSON(), "https://skywatching.eu/imagedata")
+		uploadMetadata(imageData.getJSON(), config.imagedataURL)
 	
 
 	

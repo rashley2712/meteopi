@@ -25,10 +25,10 @@ def information(message):
 def signal_handler(sig, frame):
 	print("Caught Ctrl-C")
 	print("Killing monitors")
-	exteriorSensor.killMonitor()
 	domeSensor.killMonitor()
 	cpuSensor.killMonitor()
-	#webber.killMonitor()
+	meteouploader.killMonitor()
+	status.killMonitor()
 	logger.close()
 	sys.exit()
 
