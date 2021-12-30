@@ -180,6 +180,8 @@ if __name__ == "__main__":
 			newExpTime = expTime * 1.25
 			information("image is a little under-exposed, suggesting exposure goes from %.4f to %.4f seconds."%(expTime, newExpTime))
 		
+		if newExpTime > 110: newExpTime = 110
+
 		config.camera['night']['expTime'] = newExpTime
 		config.save()
 		
