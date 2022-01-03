@@ -164,19 +164,19 @@ if __name__ == "__main__":
 
 		newExpTime = expTime
 		if median > 240: 
-			newExpTime = expTime * 0.60
+			newExpTime = expTime * 0.50
 			information("image is quite saturated, suggesting exposure goes from %.4f to %.4f seconds."%(expTime, newExpTime))
 		elif median>200:
 			newExpTime = expTime * 0.8
 			information("image is little bit saturated, suggesting exposure goes from %.4f to %.4f seconds."%(expTime, newExpTime))
-		elif median>170:
+		elif median>128:
 			newExpTime = expTime * 0.9
 			information("image is little bit saturated, suggesting exposure goes from %.4f to %.4f seconds."%(expTime, newExpTime))
 
-		if median <50: 
+		if median <60: 
 			newExpTime = expTime * 2.0
 			information("image is a quite under-exposed, suggesting exposure goes from %.4f to %.4f seconds."%(expTime, newExpTime))
-		elif median <150: 
+		elif median <128: 
 			newExpTime = expTime * 1.25
 			information("image is a little under-exposed, suggesting exposure goes from %.4f to %.4f seconds."%(expTime, newExpTime))
 		
