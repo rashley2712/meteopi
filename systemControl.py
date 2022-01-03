@@ -73,9 +73,19 @@ if __name__ == "__main__":
 		if (config.domeTempSensor['type'] == "BME280"):
 			domeSensor = skywatch.domeSensor2(config = config.domeTempSensor)
 			sensors.append(domeSensor)
+		if (config.domeTempSensor['type'] == "AM2302"):
+			domeSensor = skywatch.domeSensor(config = config.domeTempSensor)
+			sensors.append(domeSensor)
 	if hasattr(config, "skySensor"):
 		IRSensor = skywatch.IRSensor(config = config.skySensor)
 		sensors.append(IRSensor)
+
+	if hasattr(config, "externalTempSensor"):
+		if config.externalTempSensor['type'] == "DS18B20":
+			externalSensor = skywatch.exteriorSensor(config=config.externalTempSensor)
+			sensors.append(externalSensor)
+
+
 	cpuSensor = skywatch.cpuSensor(config = config.cpuSensor)
 	sensors.append(cpuSensor)
 
@@ -91,7 +101,7 @@ if __name__ == "__main__":
 		domeFan = skywatch.fanController(config.domeFan)
 		if config.domeFan['attachedTo'] == "cpuSensor":
 			cpuSensor.attachFan(domeFan)
-		if config.caseFan['attachedTo'] == "domeSensor":
+		if config.domeFan['attachedTo'] == "domeSensor":
 			domeSensor.attachFan(domeFan)
 
 	# Create the logging services

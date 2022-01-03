@@ -209,11 +209,11 @@ class logger():
 	
 
 class exteriorSensor():
-	def __init__(self, name="exterior"):
+	def __init__(self, name="exterior", config = {}):
 		self.temperature = -999
 		self.base_dir = '/sys/bus/w1/devices/'
 		self.name = name
-		self.monitorCadence = 20
+		self.monitorCadence = config['cadence']
 		self.fan = False
 		self.attachedFan = None
 		self.exit = False
@@ -429,13 +429,14 @@ class IRSensor():
 
 
 class domeSensor():
-	def __init__(self, name = "dome"):
+	def __init__(self, name = "dome", config={}):
 		# Initialise the dht device, with data pin connected to:
+		import adafruit_dht
 		self.pin = board.D17
 		self.dhtDevice = adafruit_dht.DHT22(board.D17)
 		self.temperature = -999
 		self.humidity = -999
-		self.monitorCadence = 20
+		self.monitorCadence = config['cadence']
 		self.name = "dome"
 		self.attachedFan = None
 		self.attachedFans = []
@@ -510,7 +511,7 @@ class fanController():
 		self.hysterisis = config['temperatureUpper'] - config['temperatureLower']
 		GPIO.setmode(GPIO.BCM) # Use BCM pin numbering
 		GPIO.setup(self.GPIO, GPIO.OUT, initial=GPIO.LOW)
-		self.fanOn = False 
+		self.fanOn = False
 		
 	def checkFan(self, temp):
 		if temp>self.triggerTemperature: 
