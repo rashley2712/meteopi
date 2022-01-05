@@ -132,6 +132,7 @@ if __name__ == "__main__":
 	imageData.setProperty("width", size[0])
 	imageData.setProperty("height", size[1])
 	debugOut("size: %s"%str(size))
+	(width, height) = size
 	index = str(exif_data).find("exp=")
 	end = str(exif_data).find(' ', index)
 	expTime = float(str(exif_data)[index+4: end+1])/1E6
@@ -142,10 +143,11 @@ if __name__ == "__main__":
 	
 
 	if imageData.mode == "night":
-		left = 1500
-		right = 2500
-		upper = 1000
-		lower = 2000
+		# Choose the central 25% of the image
+		left = int( width/2 - width/4)
+		right = int( width/2 + width/4)
+		upper = int( height/2 - height/4)
+		lower = int( height/2 + height/4)
 		
 		histogram = getHistoRGB(image)
 		if args.display: plotHistoRGB(histogram)
