@@ -139,7 +139,6 @@ if __name__ == "__main__":
 		beginning = datetime.datetime.now()
 		config.load()
 		offLED()
-		# cameraConfig = fetchCameraConfig(config.cameraparameterURL)
 		ephemeris = getSunMoon(locationInfo)
 		if not ephemeris['night']: mode = 'day'
 		else: mode = 'night'
@@ -207,6 +206,7 @@ if __name__ == "__main__":
 		imageData.setProperty("moon", { "elevation": "%.1f"%ephemeris['moonElevation'], "illumination":  "%.1f"%ephemeris['moonIllumination']} )
 		imageData.setProperty("sun", { "elevation": "%.1f"%ephemeris['sunElevation'] } )
 		imageData.setProperty("mode", mode)
+		imageData.setProperty("parameters", cameraConfig['params'])
 		
 		imageData.setFilename(destinationFilename.split('.')[0] + ".json")
 		imageData.save()
