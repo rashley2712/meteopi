@@ -218,8 +218,12 @@ if __name__ == "__main__":
 
 		end = datetime.datetime.now()
 		elapsedTime = (end - beginning).total_seconds()
-		timeToWait = cadence - elapsedTime
-		information("Total elapsed time: %.1f  Cadence is %.1f   ... time to wait %0.1f"%(elapsedTime, cadence, timeToWait))
+		if cadence == "max": 
+			timeToWait = 0
+			information("Total elapsed time: %.1f  Cadence is %s   ... time to wait %0.1f"%(elapsedTime, cadence, timeToWait))
+		else: 
+			timeToWait = cadence - elapsedTime
+			information("Total elapsed time: %.1f  Cadence is %.1f   ... time to wait %0.1f"%(elapsedTime, cadence, timeToWait))
 		if timeToWait>0: 
 			information("Sleeping now")
 			time.sleep(timeToWait)
