@@ -428,6 +428,56 @@ class IRSensor():
 			self.exit = True
 
 
+class batterySensor():
+	def __init__(self, name = "battery", config={}):
+		self.current = -999
+		self.voltage = -999
+		self.currentReadings = []
+		self.voltageReadings = []
+		self.averageCurrent = -999
+		self.averageVoltage = -999
+
+		try: 
+			self.monitorCadence = config['cadence']
+		except KeyError:
+			self.monitorCadence = 5
+		try: 
+			self.numReadings = config['average']
+		except KeyError:
+			self.numReadings = 20
+		
+		
+		self.name = name
+		self.exit = False
+		self.logData = { }
+		import adafruit_ina260
+		import busio
+		self.i2c = busio.I2C(board.SCL, board.SDA)
+		self.ina260 = adafruit_ina260.INA260(self.i2c)
+
+	def readCurrentVoltage(self):
+		self.current = self.ina260.current
+		self.voltage = self.ina260.voltage
+		if len(self.currentReadings)==self.numReadings: self.currentReadings.pop(0)
+		self.currentReadings.append(self.current)
+		self.averageCurrent = sum(self.currentReadings) / len(self.currentReadings)	
+		if len(self.voltageReadings)==self.numReadings: self.voltageReadings.pop(0)
+		self.voltageReadings.append(self.voltage)
+		self.averageVoltage = sum(self.voltageReadings) / len(self.voltageReadings)	
+		self.logData['current'] = self.averageCurrent	
+		self.logData['voltage'] = self.averageVoltage
+		
+	def monitor(self):
+		while not self.exit:
+			self.readCurrentVoltage()
+			print("%s monitor: %.2f [%.2f] mA %.2f [%.2f] V"%(self.name, self.current, self.averageCurrent, self.voltage, self.averageVoltage), flush=True)
+			time.sleep(self.monitorCadence)
+		
+	def startMonitor(self):
+		self.monitorThread = threading.Thread(name='non-block', target=self.monitor)
+		self.monitorThread.start()
+		
+
 class domeSensor():
 	def __init__(self, name = "dome", config={}):
 		# Initialise the dht device, with data pin connected to:

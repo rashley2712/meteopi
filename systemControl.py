@@ -85,7 +85,10 @@ if __name__ == "__main__":
 			externalSensor = skywatch.exteriorSensor(config=config.externalTempSensor)
 			sensors.append(externalSensor)
 
-
+	if hasattr(config, "batterySensor"):
+		batterySensor = skywatch.batterySensor(config = config.batterySensor)
+		sensors.append(batterySensor)
+		
 	cpuSensor = skywatch.cpuSensor(config = config.cpuSensor)
 	sensors.append(cpuSensor)
 
