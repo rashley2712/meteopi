@@ -464,8 +464,8 @@ class batterySensor():
 		if len(self.voltageReadings)==self.numReadings: self.voltageReadings.pop(0)
 		self.voltageReadings.append(self.voltage)
 		self.averageVoltage = sum(self.voltageReadings) / len(self.voltageReadings)	
-		self.logData['current'] = self.averageCurrent	
-		self.logData['voltage'] = self.averageVoltage
+		self.logData['current'] = round(self.averageCurrent, 2)	
+		self.logData['voltage'] = round(self.averageVoltage, 2)
 		
 	def monitor(self):
 		while not self.exit:
