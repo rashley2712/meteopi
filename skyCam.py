@@ -152,6 +152,18 @@ if __name__ == "__main__":
 		# Execute raspistill and time the execution
 		imageCommand = ['raspistill']
 		
+		try:
+			if cameraConfig['width']!="max": 
+				width = cameraConfig['width']
+			if cameraConfig['height']!="max": 
+				height = cameraConfig['height']
+			imageCommand.append("--height")
+			imageCommand.append(str(height))
+			imageCommand.append("--width")
+			imageCommand.append(str(width))
+		except KeyError as e:
+			information("width, height parameters not found. Will take full image")
+
 		if mode=="night": 
 			expTime = float(cameraConfig['expTime'])
 			
