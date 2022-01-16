@@ -86,18 +86,20 @@ class meteoUploader:
 
 	def sendData(self, URL, jsonData):
 		success = False
-		print("Sending to:", URL)
+		print("Sending to meteo info to:", URL)
 		try: 
 			response = requests.post(URL, json=jsonData)
+			print("Server status code: ", response.status_code, flush=True)
+			if (response.status_code!=200): 
+				print("Data not uploaded.")
+				return False
 			responseJSON = json.loads(response.text)
-			print(json.dumps(responseJSON, indent=4))
 			if responseJSON['status'] == 'success': success = True
 			response.close()
 		except Exception as e: 
 			success = False
 			print(e, flush=True)
 				
-		print(success, flush=True)
 		return success
 
 
@@ -129,15 +131,17 @@ class statusController:
 		success = False
 		try: 
 			response = requests.post(URL, json=jsonData)
+			print("Server status code: ", response.status_code, flush=True)
+			if (response.status_code!=200): 
+				print("Data not uploaded.")
+				return False
 			responseJSON = json.loads(response.text)
-			print(json.dumps(responseJSON, indent=4))
 			if responseJSON['status'] == 'success': success = True
 			response.close()
 		except Exception as e: 
 			success = False
 			print(e)
 				
-		print(success, flush=True)
 		return success
 
 	def monitor(self):
