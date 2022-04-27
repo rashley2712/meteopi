@@ -136,8 +136,10 @@ if __name__ == "__main__":
 	index = str(exif_data).find("exp=")
 	end = str(exif_data).find(' ', index)
 	expTime = float(str(exif_data)[index+4: end+1])/1E6
-	imageData.setProperty("exposure", expTime)
-	debugOut("Exposure time %.2f seconds"%(expTime))
+	debugOut("EXIF: expTime: %.4f"%expTime)	
+	# imageData.setProperty("exposure", expTime)
+	expTime = imageData.exposure
+	debugOut("Exposure time from JSON is %.4f seconds"%(expTime))
 	debugOut("Bands: %s"%str(image.getbands()))
 	imageData.save()		
 	
