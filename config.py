@@ -21,6 +21,7 @@ class config():
 	def save(self):
 		configFile = open(self.filename, "wt")
 		json.dump(self._json, configFile, indent=4)
+		configFile.write("\n")
 		configFile.close()
 		
 	def setProperties(self):

@@ -21,6 +21,7 @@ class imagedata():
 	def save(self):
 		output = open(self._filename, "wt")
 		json.dump(self._json, output, indent=4)
+		output.write("\n")
 		output.close()
 
 	def setProperty(self, key, value):

@@ -218,7 +218,8 @@ if __name__ == "__main__":
 		imageData.setProperty("moon", { "elevation": "%.1f"%ephemeris['moonElevation'], "illumination":  "%.1f"%ephemeris['moonIllumination']} )
 		imageData.setProperty("sun", { "elevation": "%.1f"%ephemeris['sunElevation'] } )
 		imageData.setProperty("mode", mode)
-		imageData.setProperty("exposure", expTime)
+		if mode=="night": imageData.setProperty("exposure", expTime)
+		else: imageData.setProperty("exposure", -1)
 		imageData.setProperty("parameters", cameraConfig['params'])
 		
 		imageData.setFilename(destinationFilename.split('.')[0] + ".json")
