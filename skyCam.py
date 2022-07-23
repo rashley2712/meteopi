@@ -146,7 +146,10 @@ if __name__ == "__main__":
 		information("Exposures will be in " + mode + " mode.")
 		cameraConfig = config.camera[mode]
 		cadence = cameraConfig['cadence']
-		
+		try: 
+			fileEncoding = cameraConfig['encoding']
+		except:
+			fileEncoding = "jpg"
 		timeString = beginning.strftime("%Y%m%d_%H%M%S")
 		dbTimeString = beginning.strftime("%Y-%m-%d %H:%M:%S")
 		# Execute raspistill and time the execution
@@ -191,8 +194,11 @@ if __name__ == "__main__":
 		imageCommand.append('-a')	# Add annotation ...
 		imageCommand.append(extraAnnotation)	# custom text 
 			
+		imageCommand.append('--encoding')	
+		imageCommand.append(fileEncoding)
+		
 		imageCommand.append('-o')	
-		imageCommand.append('/tmp/camera.jpg')
+		imageCommand.append('/tmp/camera.' + fileEncoding)
 
 		cmdString = ""
 		for piece in imageCommand:
@@ -205,9 +211,9 @@ if __name__ == "__main__":
 		duration = end - start
 		information("time elapsed during camera operation %s"%str(duration))
 		
-		destinationFilename = os.path.join(config.cameraoutputpath, timeString + "_" + hostname + ".jpg")
+		destinationFilename = os.path.join(config.cameraoutputpath, timeString + "_" + hostname + "." + fileEncoding)
 		information("moving the capture to %s"%destinationFilename)
-		os.rename("/tmp/camera.jpg", destinationFilename)
+		os.rename("/tmp/camera." + fileEncoding, destinationFilename)
 
         # Write image metadata
 		imageData = imagedata.imagedata()
@@ -218,6 +224,7 @@ if __name__ == "__main__":
 		imageData.setProperty("moon", { "elevation": "%.1f"%ephemeris['moonElevation'], "illumination":  "%.1f"%ephemeris['moonIllumination']} )
 		imageData.setProperty("sun", { "elevation": "%.1f"%ephemeris['sunElevation'] } )
 		imageData.setProperty("mode", mode)
+		imageData.setProperty("encoding", fileEncoding)
 		if mode=="night": imageData.setProperty("exposure", expTime)
 		else: imageData.setProperty("exposure", -1)
 		imageData.setProperty("parameters", cameraConfig['params'])
