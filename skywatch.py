@@ -1,7 +1,6 @@
 import json, os, requests, datetime
 # import adafruit_dht
 import board, time, glob
-from adafruit_bme280 import basic as adafruit_bme280
 import RPi.GPIO as GPIO # Import Raspberry Pi GPIO library
 import threading
 import socket, subprocess, uuid, shutil
@@ -309,6 +308,7 @@ class cpuSensor():
 class domeSensor2():
 	def __init__(self, name = "dome", config={}):
 		# Initialise the bme280
+		from adafruit_bme280 import basic as adafruit_bme280
 		i2c = board.I2C()  # uses board.SCL and board.SDA
 		self.active = False
 		decAddress = int(config['address'], 16)
@@ -363,6 +363,93 @@ class domeSensor2():
 			
 	def monitor(self):
 		while not self.exit:
+			self.readTemp()
+			self.readHumidity()
+			self.readPressure()
+			print(self.name + "monitor: ", self.temperature, self.humidity, self.pressure, flush=True)
+			if self.fan: 
+				for fan in self.attachedFans:
+					fan.checkFan(self.temperature)
+	
+			time.sleep(self.monitorCadence)
+	
+
+		
+	def startMonitor(self):
+		self.monitorThread = threading.Thread(name='non-block', target=self.monitor)
+		self.monitorThread.start()
+			
+	def killMonitor(self):
+		print("stopping %s monitor."%self.name, flush=True)
+		self.exit = True
+
+
+class domeSensor680():
+	def __init__(self, name = "dome", config={}):
+		# Initialise the bme680
+		import bme680
+		i2c = board.I2C()  # uses board.SCL and board.SDA
+		self.active = False
+		decAddress = int(config['address'], 16)
+		
+		try:
+			self.bme680 = bme680.BME680(bme680.I2C_ADDR_PRIMARY)
+		except (RuntimeError, IOError):
+			self.bme680 = bme680.BME680(bme680.I2C_ADDR_SECONDARY)
+		
+		
+		self.bme680.set_humidity_oversample(bme680.OS_2X)
+		self.bme680.set_pressure_oversample(bme680.OS_4X)
+		self.bme680.set_temperature_oversample(bme680.OS_8X)
+		self.bme680.set_filter(bme680.FILTER_SIZE_3)
+
+		self.fan = False
+		self.attachedFans = []
+		self.temperature = -999
+		self.humidity = -999
+		self.pressure = -999
+		self.name = name
+		print(config, flush=True)
+		try: 
+			self.monitorCadence = config['cadence']
+		except KeyError:
+			self.monitorCadence = 20
+		self.exit = False
+		self.logData = { } 
+
+	def attachFan(self, fan):
+		self.attachedFans.append(fan)
+		self.fan = True
+		
+	def readTemp(self):
+		try:
+			self.temperature = round(self.bme680.data.temperature, 1)
+		except:
+			self.temperature = -999
+		self.logData['temperature'] = self.temperature
+		return self.temperature
+			
+	def readHumidity(self):
+		try:
+			self.humidity = round(self.bme680.data.humidity, 1)
+		except:
+			self.humidity = -999
+		self.logData['humidity'] = self.humidity
+		return self.humidity
+			
+			
+	def readPressure(self):
+		try:
+			self.pressure = round(self.bme680.data.pressure, 1)
+		except:
+			self.pressure = -999
+		self.logData['pressure'] = self.pressure
+		return self.pressure
+			
+	def monitor(self):
+		while not self.exit:
+			if not self.bme680.get_sensor_data():
+				print("error with BME680", flush=True)
 			self.readTemp()
 			self.readHumidity()
 			self.readPressure()

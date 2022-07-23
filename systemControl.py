@@ -76,6 +76,9 @@ if __name__ == "__main__":
 		if (config.domeTempSensor['type'] == "AM2302"):
 			domeSensor = skywatch.domeSensor(config = config.domeTempSensor)
 			sensors.append(domeSensor)
+		if (config.domeTempSensor['type'] == "BME680"):
+			domeSensor = skywatch.domeSensor680(config = config.domeTempSensor)
+			sensors.append(domeSensor)
 	if hasattr(config, "skySensor"):
 		IRSensor = skywatch.IRSensor(config = config.skySensor)
 		sensors.append(IRSensor)
