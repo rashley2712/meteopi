@@ -104,7 +104,7 @@ if __name__ == "__main__":
 		# Generate the list of files in the specified folder
 		debugOut("Looking for the most recent file in %s"%config.cameraoutputpath)
 		import glob
-		listing = glob.glob(config.cameraoutputpath + "/*.jpg")
+		listing = glob.glob(config.cameraoutputpath + "/*.(jpg|png)")
 		fileCollection = []
 		for f in listing:
 			fdict = { "filename": os.path.join(config.cameraoutputpath, f), "timestamp": os.path.getmtime(os.path.join(config.cameraoutputpath, f))}
@@ -126,22 +126,23 @@ if __name__ == "__main__":
 		print("Rendering a preview to the X-session ... will take about 30s")
 		image.show()
 
-	exif_data = image._getexif()
-	if debug: showTags(exif_data)
+	if imageData.encoding == "jpg":
+		exif_data = image._getexif()
+		index = str(exif_data).find("exp=")
+		end = str(exif_data).find(' ', index)
+		if debug: showTags(exif_data)
+		expTime = float(str(exif_data)[index+4: end+1])/1E6
+		if expTime==-1: 
+			imageData.setProperty("exposure", expTime)
+			debugOut("EXIF: expTime: %.4f"%expTime)	
 	size = image.size
 	imageData.setProperty("width", size[0])
 	imageData.setProperty("height", size[1])
 	debugOut("size: %s"%str(size))
 	(width, height) = size
-	index = str(exif_data).find("exp=")
-	end = str(exif_data).find(' ', index)
 	
 	expTime = imageData.exposure
 	debugOut("Exposure time from JSON is %.4f seconds"%(expTime))
-	if expTime==-1: 
-		expTime = float(str(exif_data)[index+4: end+1])/1E6
-		debugOut("EXIF: expTime: %.4f"%expTime)	
-		imageData.setProperty("exposure", expTime)
 	debugOut("Bands: %s"%str(image.getbands()))
 	imageData.save()		
 	
