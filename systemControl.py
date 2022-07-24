@@ -91,6 +91,10 @@ if __name__ == "__main__":
 	if hasattr(config, "batterySensor"):
 		batterySensor = skywatch.batterySensor(config = config.batterySensor)
 		sensors.append(batterySensor)
+
+	if hasattr(config, "netMonitor"):
+		netSensor = skywatch.netSensor(config = config.netMonitor)
+		sensors.append(netSensor)
 		
 	cpuSensor = skywatch.cpuSensor(config = config.cpuSensor)
 	sensors.append(cpuSensor)

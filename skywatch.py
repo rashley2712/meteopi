@@ -39,6 +39,56 @@ class systemInfo:
 		self.systemInfo['diskfree'] = free // (2**30)
 		
 
+class netSensor:
+	def __init__(self, config = {}):
+		self.name = "netSensor"
+		self.logFile = "/var/log/netstatus.log"
+		self.cadence = config['cadence']
+		self.pingServer = config['pingServer']
+		self.exit = False
+		self.logData = { "ping" : -1 }
+
+
+	def checkInternet(self):
+		averagePing = self.getPingTime(self.pingServer, 3)
+		self.logData["ping"] = averagePing
+		print("ping time to %s is %.2f"%(self.pingServer, averagePing))
+		
+	def getPingTime(self, url, count):
+		pingCount = count
+		pingCommand = ["ping"]	
+		pingCommand.append(url)
+		pingCommand.append("-c")
+		pingCommand.append(str(pingCount))
+		pingAverage = 0
+		#print("Running:", pingCommand)
+		cmd = subprocess.Popen(pingCommand, stdout=subprocess.PIPE)
+		for line in cmd.stdout:
+			stdoutStr = str(line).strip()
+			#print(stdoutStr)
+			if "avg" in stdoutStr:
+				averageStr = stdoutStr.split('=')[1].split('/')[1]
+				pingAverage = float(averageStr)
+			
+		return pingAverage
+
+	def monitor(self):
+		while not self.exit:
+			self.checkInternet()
+			time.sleep(self.cadence)
+	
+	def startMonitor(self):
+		self.monitorThread = threading.Thread(name='non-block', target=self.monitor)
+		self.monitorThread.start()
+		
+	def killMonitor(self):
+		print("stopping %s monitor."%self.name)
+		self.exit = True
+
+
+
+	
+
 class meteoUploader:
 	def __init__(self, baseURL = "http://rashley.local", timezone="utc",  config={}):
 		self.statusURL = "http://rashley.local/piStatus"
