@@ -22,6 +22,32 @@ class systemInfo:
 			ssid = "none"	
 		self.systemInfo['SSID'] = ssid
 
+		# Get all network interfaces
+		output = subprocess.check_output(['ifconfig']).decode('UTF-8')
+	
+		sections = []
+		section = ""
+		for line in output.split("\n"):
+			if len(line.strip())==0:
+				sections.append(section)
+				section = ""
+			section+=line.strip()
+		
+		netConfig  = []
+		for n, section in enumerate(sections):
+			if len(section) <1: continue
+			configInfo = {}
+			print("Section ", n)
+			print(section)
+			configInfo['interface'] = section.split(":")[0]
+			startIndex = section.find("inet ") + len("inet ")
+			endIndex = section.find(" ", startIndex+1)
+			ip = section[startIndex:endIndex]
+			configInfo['ip'] = ip
+			if not configInfo['interface']=='lo': netConfig.append(configInfo)
+
+		self.systemInfo['localip'] = netConfig	
+
 		# Get mac address
 		macAddress = ':'.join(['{:02x}'.format((uuid.getnode() >> ele) & 0xff) for ele in range(0,8*6,8)][::-1])
 		self.systemInfo['macaddress'] = macAddress
