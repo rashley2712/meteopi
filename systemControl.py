@@ -120,6 +120,15 @@ if __name__ == "__main__":
 		logger.attachSensor(s)
 		meteouploader.attachSensor(s)
 
+	if config.caseFan!="none": 
+		logger.attachSensor(caseFan)
+		meteouploader.attachSensor(caseFan)
+	if config.domeFan!="none": 
+		logger.attachSensor(domeFan)
+		meteouploader.attachSensor(domeFan)
+	
+	 
+
 	n=0
 	logger.startMonitor()
 	time.sleep(6)
