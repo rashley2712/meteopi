@@ -38,6 +38,7 @@ def offLED():
 	outfile = open(config.ledFile, "wt")
 	outfile.write("off\n")
 	outfile.close()
+	subprocess.call( [os.path.join(config.installpath, "ledoff.bash")])
 	time.sleep(config.ledRefresh)
 		
 def onLED():   
@@ -46,7 +47,8 @@ def onLED():
 	outfile = open(config.ledFile, "wt")
 	outfile.write("heartbeat\n")
 	outfile.close()
-
+	subprocess.call( [os.path.join(config.installpath, "ledon.bash")])
+	
 def getSunMoon(locationInfo): 
 	night = False
 	meteoLocation = ephem.Observer()
