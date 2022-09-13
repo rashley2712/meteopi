@@ -101,13 +101,13 @@ if __name__ == "__main__":
 
 	
 	# Attach the fans
-	if config.caseFan!="none":
+	if hasattr(config, "caseFan"):
 		caseFan = skywatch.fanController(config.caseFan)
 		if config.caseFan['attachedTo'] == "cpuSensor":
 			cpuSensor.attachFan(caseFan)
 		if config.caseFan['attachedTo'] == "domeSensor":
 			domeSensor.attachFan(caseFan)
-	if config.domeFan!="none":
+	if hasattr(config, "domeFan"):
 		domeFan = skywatch.fanController(config.domeFan)
 		if config.domeFan['attachedTo'] == "cpuSensor":
 			cpuSensor.attachFan(domeFan)
@@ -120,10 +120,10 @@ if __name__ == "__main__":
 		logger.attachSensor(s)
 		meteouploader.attachSensor(s)
 
-	if config.caseFan!="none": 
+	if hasattr(config, "caseFan"): 
 		logger.attachSensor(caseFan)
 		meteouploader.attachSensor(caseFan)
-	if config.domeFan!="none": 
+	if hasattr(config, "domeFan"): 
 		logger.attachSensor(domeFan)
 		meteouploader.attachSensor(domeFan)
 	
