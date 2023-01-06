@@ -68,8 +68,8 @@ if __name__ == "__main__":
 	status = skywatch.statusController(config = config.statusUpload)
 
 	# Initiliase temperature sensors and fans
-	print("Dome sensor info:", config.domeTempSensor)
 	if hasattr(config, "domeTempSensor"):
+		print("Dome sensor info:", config.domeTempSensor)
 		if (config.domeTempSensor['type'] == "BME280"):
 			domeSensor = skywatch.domeSensor2(config = config.domeTempSensor)
 			sensors.append(domeSensor)
@@ -81,7 +81,7 @@ if __name__ == "__main__":
 			sensors.append(domeSensor)
 	if hasattr(config, "skySensor"):
 		IRSensor = skywatch.IRSensor(config = config.skySensor)
-		sensors.append(IRSensor)
+		if IRSensor.available: sensors.append(IRSensor)
 
 	if hasattr(config, "externalTempSensor"):
 		if config.externalTempSensor['type'] == "DS18B20":
@@ -90,7 +90,7 @@ if __name__ == "__main__":
 
 	if hasattr(config, "batterySensor"):
 		batterySensor = skywatch.batterySensor(config = config.batterySensor)
-		sensors.append(batterySensor)
+		if batterySensor.available: sensors.append(batterySensor)
 
 	if hasattr(config, "netMonitor"):
 		netSensor = skywatch.netSensor(config = config.netMonitor)

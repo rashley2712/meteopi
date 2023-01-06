@@ -559,6 +559,15 @@ class IRSensor():
 			except KeyError:
 				self.monitorCadence = 20
 			
+			try: 
+				output = subprocess.check_output(['/home/pi/code/meteopi/readTsky']).decode('UTF-8')
+				self.skytemperature = round(float(output.split('\n')[0]),1)
+				self.available = True
+			except Exception as e:
+				print("Could not read the IR sensor", flush = True)
+				self.available = False
+			
+			
 		def readSky(self):
 			try: 
 				output = subprocess.check_output(['/home/pi/code/meteopi/readTsky']).decode('UTF-8')
@@ -566,6 +575,7 @@ class IRSensor():
 			except Exception as e:
 				print(e, flush=True)
 				self.skytemperature = -999	
+				self.available = False
 			self.logData['sky'] = self.skytemperature	
 			return self.skytemperature
 			
@@ -576,6 +586,7 @@ class IRSensor():
 			except Exception as e:
 				print(e)
 				self.ambienttemperature = -999
+				self.available = False
 			self.logData['ambient'] = self.ambienttemperature	
 			return self.ambienttemperature
 			
@@ -620,7 +631,13 @@ class batterySensor():
 		import adafruit_ina260
 		import busio
 		self.i2c = busio.I2C(board.SCL, board.SDA)
-		self.ina260 = adafruit_ina260.INA260(self.i2c)
+		try:
+			self.ina260 = adafruit_ina260.INA260(self.i2c)
+			self.available = True
+		except ValueError as error:
+			print("Could not initialise battery sensor.")
+			self.available = False
+
 
 	def readCurrentVoltage(self):
 		self.current = self.ina260.current
