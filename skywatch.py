@@ -636,7 +636,7 @@ class batterySensor():
 		import busio
 		self.i2c = busio.I2C(board.SCL, board.SDA)
 		try:
-			self.ina260 = adafruit_ina260.INA260(self.i2c, self.address)
+			self.ina260 = adafruit_ina260.INA260(self.i2c, self.decAddress)
 			self.available = True
 		except ValueError as error:
 			print("Could not initialise battery sensor.")
