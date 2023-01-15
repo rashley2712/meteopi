@@ -623,7 +623,11 @@ class batterySensor():
 			self.numReadings = config['average']
 		except KeyError:
 			self.numReadings = 20
-		
+		try: 
+			self.address = config['address']
+		except KeyError:
+			self.address = "0x40"
+		self.decAddress = int(self.address, 16)
 		
 		self.name = name
 		self.exit = False
@@ -632,7 +636,7 @@ class batterySensor():
 		import busio
 		self.i2c = busio.I2C(board.SCL, board.SDA)
 		try:
-			self.ina260 = adafruit_ina260.INA260(self.i2c)
+			self.ina260 = adafruit_ina260.INA260(self.i2c, self.address)
 			self.available = True
 		except ValueError as error:
 			print("Could not initialise battery sensor.")
