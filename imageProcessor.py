@@ -81,6 +81,24 @@ def information(message):
 	print(message, flush=True)
 	return
 
+def renderText(image, imageData):
+	from PIL import ImageFont
+	from PIL import ImageDraw 
+
+	text = "%s | sun: %s | moon: %s (%s%%)"%(imageData.date, imageData.sun['elevation'], imageData.moon['elevation'], imageData.moon['illumination'])
+	print("Annotation:", text)
+	draw = ImageDraw.Draw(image)
+	size = image.size
+	if size[0]>3000: fontSize = 54
+	else: fontSize = 26
+	font = ImageFont.truetype("DejaVuSans.ttf", fontSize)
+	w, h = draw.textsize(text, font=font)
+	W, H = image.size
+	draw.text(((W-w)/2,0), text, (255,255,255), font=font)
+
+	return image
+
+
 def showTags(tags):
 	for key in tags.keys():
 		print(TAGS[key], tags[key])
@@ -133,7 +151,7 @@ if __name__ == "__main__":
 		if debug: showTags(exif_data)
 		expTime = float(str(exif_data)[index+4: end+1])/1E6
 		if expTime==-1: 
-			imageData.setProperty("exposure", expTime)
+			#imageData.setProperty("exposure", expTime)
 			debugOut("EXIF: expTime: %.4f"%expTime)	
 	size = image.size
 	imageData.setProperty("width", size[0])
@@ -143,9 +161,21 @@ if __name__ == "__main__":
 	
 	expTime = imageData.exposure
 	debugOut("Exposure time from JSON is %.4f seconds"%(expTime))
+	if imageData.mode=="night":
+		imageData.setProperty("exposure", round(expTime, 2))
 	debugOut("Bands: %s"%str(image.getbands()))
 	imageData.save()		
-	
+
+	# Save a copy of the non-annotated image
+	notextDir = "/home/pi/share/no-text/"
+	notextFile = notextDir + os.path.split(imageFile['filename'])[1]
+	print("Will save an un-annotated image to:", notextFile)
+	image.save(notextFile)
+
+	# Render the annotations onto the image
+	image = renderText(image, imageData)
+	# Write the annotated image
+	image.save(imageFile['filename'])
 
 	if imageData.mode == "night":
 		# Choose the central 25% of the image

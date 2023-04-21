@@ -176,25 +176,26 @@ if __name__ == "__main__":
 			cmdString = cameraConfig['params'] + " -ss %.0f"%timeMicros
 			for piece in cmdString.split(" "):
 				imageCommand.append(piece)
-			imageCommand.append('-ae')
-			imageCommand.append('64,0xffffff,0x000000')
+			# Annotation disabled 20230420
+			#imageCommand.append('-ae')
+			#imageCommand.append('64,0xffffff,0x000000')
 		else: 
 			cmdString = cameraConfig['params']
 			for piece in cmdString.split(" "):
 				imageCommand.append(piece)	
-			imageCommand.append('-ae')
-			imageCommand.append('64,0x000000,0xffffff')
+			#imageCommand.append('-ae')
+			#imageCommand.append('64,0x000000,0xffffff')
 
-		extraAnnotation = timeString
-		if mode=="night": extraAnnotation+= " N %.1fs"%expTime
-		extraAnnotation+= " sun: %.0f moon: %.0f (%.0f%%)"%(ephemeris['sunElevation'], ephemeris['moonElevation'], ephemeris['moonIllumination'])
-		if len(cameraConfig['annotation']) > 0:
-			information("Custom annotation requested: " + cameraConfig['annotation'])
-			extraAnnotation+= " " + cameraConfig['annotation']
-		extraAnnotation = "'" + extraAnnotation + "'"
+		#extraAnnotation = timeString
+		#if mode=="night": extraAnnotation+= " N %.1fs"%expTime
+		#extraAnnotation+= " sun: %.0f moon: %.0f (%.0f%%)"%(ephemeris['sunElevation'], ephemeris['moonElevation'], ephemeris['moonIllumination'])
+		#if len(cameraConfig['annotation']) > 0:
+		#	information("Custom annotation requested: " + cameraConfig['annotation'])
+		#	extraAnnotation+= " " + cameraConfig['annotation']
+		#extraAnnotation = "'" + extraAnnotation + "'"
 		
-		imageCommand.append('-a')	# Add annotation ...
-		imageCommand.append(extraAnnotation)	# custom text 
+		#imageCommand.append('-a')	# Add annotation ...
+		#imageCommand.append(extraAnnotation)	# custom text 
 			
 		imageCommand.append('--encoding')	
 		imageCommand.append(fileEncoding)
