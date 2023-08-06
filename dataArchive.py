@@ -93,7 +93,7 @@ if __name__ == "__main__":
 	
 	user = os.getlogin()
 	ffmpegCommand = ["nice", "/home/%s/bin/pipeFFMPEG.bash"%user]
-	ffmpegCommand.append("nightexposures.list")
+	ffmpegCommand.append("nightexposures")
 	print("Running:", ffmpegCommand)
 	from subprocess import Popen, PIPE
 	#output, errors = Popen(archiveFolder, stdout=PIPE, stderr=PIPE).communicate()
