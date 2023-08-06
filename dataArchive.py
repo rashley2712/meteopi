@@ -1,7 +1,7 @@
 #!/usr/bin/env python
 
 import config    # These are libraries that are part of meteopi
-import argparse, json, sys, os, datetime
+import subprocess,argparse, json, sys, os, datetime
 import ephem
 
 def debugOut(message):
@@ -89,3 +89,17 @@ if __name__ == "__main__":
 	listFile.close()
 	
 	print("Written %d exposures to 'nightexposures.list'"%len(nightExposures))
+	
+	
+	user = os.getlogin()
+	ffmpegCommand = ["nice", "/home/%s/bin/pipeFFMPEG.bash"%user]
+	ffmpegCommand.append("nightexposures.list")
+	print("Running:", ffmpegCommand)
+	from subprocess import Popen, PIPE
+	#output, errors = Popen(archiveFolder, stdout=PIPE, stderr=PIPE).communicate()
+	subprocess.call(ffmpegCommand)
+
+		#
+		# 
+		#
+	
