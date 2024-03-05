@@ -7,16 +7,11 @@ import busio
 
 
 # Initialise the bme280
-address = "0x76"
+address = "0x77"
 from adafruit_bme280 import basic as adafruit_bme280
 i2c = board.I2C()  # uses board.SCL and board.SDA
 decAddress = int(address, 16)
-try:
-	bme280 = adafruit_bme280.Adafruit_BME280_I2C(i2c, address = decAddress)
-except ValueError:
-	print("Sensor BME280 failed!", flush=True)
-	
-
+bme280 = adafruit_bme280.Adafruit_BME280_I2C(i2c, address = decAddress)
 
 while True:
 	now = datetime.datetime.now()

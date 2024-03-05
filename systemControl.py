@@ -33,6 +33,7 @@ def signal_handler(sig, frame):
 	sys.exit()
 
 if __name__ == "__main__":
+	workingPath = os.path.split(os.path.abspath(sys.argv[0]))[0]
 	signal.signal(signal.SIGINT, signal_handler)
 	parser = argparse.ArgumentParser(description='Service to allow configuration and control via the web service.')
 	parser.add_argument('-t', '--cadence', type=int, default=60, help='Starting cadence in seconds.' )
@@ -80,6 +81,7 @@ if __name__ == "__main__":
 			domeSensor = skywatch.domeSensor680(config = config.domeTempSensor)
 			sensors.append(domeSensor)
 	if hasattr(config, "skySensor"):
+		config.skySensor['workingPath'] = workingPath
 		IRSensor = skywatch.IRSensor(config = config.skySensor)
 		if IRSensor.available: sensors.append(IRSensor)
 

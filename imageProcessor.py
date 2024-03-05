@@ -167,7 +167,7 @@ if __name__ == "__main__":
 	imageData.save()		
 
 	# Save a copy of the non-annotated image
-	notextDir = "/home/pi/share/no-text/"
+	notextDir = "/home/skywatch/share/no-text/"
 	notextFile = notextDir + os.path.split(imageFile['filename'])[1]
 	print("Will save an un-annotated image to:", notextFile)
 	image.save(notextFile)

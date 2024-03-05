@@ -554,23 +554,27 @@ class IRSensor():
 			self.ambienttemperature = -999
 			self.exit = False
 			self.name = name
+			self.workingPath = config['workingPath']	
+			print("Initialising the IR sensor!", flush=True)
+			print(config)
 			try: 
 				self.monitorCadence = config['cadence']
 			except KeyError:
 				self.monitorCadence = 20
 			
 			try: 
-				output = subprocess.check_output(['/home/pi/code/meteopi/readTsky']).decode('UTF-8')
+				output = subprocess.check_output([self.workingPath + '/readTsky']).decode('UTF-8')
 				self.skytemperature = round(float(output.split('\n')[0]),1)
 				self.available = True
 			except Exception as e:
 				print("Could not read the IR sensor", flush = True)
+				print(str(e))
 				self.available = False
 			
 			
 		def readSky(self):
 			try: 
-				output = subprocess.check_output(['/home/pi/code/meteopi/readTsky']).decode('UTF-8')
+				output = subprocess.check_output([self.workingPath + '/readTsky']).decode('UTF-8')
 				self.skytemperature = round(float(output.split('\n')[0]),1)
 			except Exception as e:
 				print(e, flush=True)
@@ -581,7 +585,7 @@ class IRSensor():
 			
 		def readAmb(self):
 			try: 
-				output = subprocess.check_output(['/home/pi/code/meteopi/readTamb']).decode('UTF-8')
+				output = subprocess.check_output([self.workingPath + '/readTamb']).decode('UTF-8')
 				self.ambienttemperature = round(float(output.split('\n')[0]),1)
 			except Exception as e:
 				print(e)
