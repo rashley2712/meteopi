@@ -40,22 +40,26 @@ if __name__ == "__main__":
 	yesterdayString = yesterday.strftime("%Y%m%d")
 	print(yesterdayString)
 	
-	rsyncCommand = ["rsync", "-avP"]
-	rsyncCommand.append(config.archive['rsync'] + "/%s*"%yesterdayString)
-	rsyncCommand.append(localPath+"/.")
-	print("Running:", rsyncCommand)
+	rsyncCommand = ["rsync", "-av"]
+	rsyncCommand.append(config.archive['local'] + "/%s*"%yesterdayString)
+	remoteLocation = config.archive['remote'].replace("{date}", yesterdayString)
+	rsyncCommand.append(remoteLocation)
+	rsyncCommandString = " ".join(rsyncCommand)
+	print("Running: %s"%rsyncCommandString)
 	from subprocess import Popen, PIPE
-	#output, errors = Popen(archiveFolder, stdout=PIPE, stderr=PIPE).communicate()
-	subprocess.call(rsyncCommand)
+	subprocess.call(rsyncCommandString, shell=True, executable="/bin/bash")
 
-	rsyncCommand = ["rsync", "-avP"]
-	rsyncCommand.append(config.archive['rsync'] + "/%s*"%dateString)
-	rsyncCommand.append(localPath+"/.")
-	print("Running:", rsyncCommand)
+	rsyncCommand = ["rsync", "-av"]
+	rsyncCommand.append(config.archive['local'] + "/%s*"%dateString)
+	remoteLocation = config.archive['remote'].replace("{date}", dateString)
+	rsyncCommand.append(remoteLocation)
+	rsyncCommandString = " ".join(rsyncCommand)
+	print("Running: %s"%rsyncCommandString)
 	from subprocess import Popen, PIPE
-	#output, errors = Popen(archiveFolder, stdout=PIPE, stderr=PIPE).communicate()
-	subprocess.call(rsyncCommand)
+	subprocess.call(rsyncCommandString, shell=True, executable="/bin/bash")
 
+
+	sys.exit()
 	
 	# Get a list of all files in the local folder
 	localPath = config.archive['local']

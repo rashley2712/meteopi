@@ -2,7 +2,7 @@
 logPath=/var/log/
 logName=skywatch.log
 logTemp=temp.log
-archivePath=/home/pi/share/logs/
+archivePath=/home/skywatch/share/logs/
 
 echo `date`
 sudo systemctl stop skywatch.service
@@ -12,10 +12,10 @@ today=$(date +'%Y%m%d')
 archive=skywatch$today.log
 echo Archiving log file to: $archivePath$archive
 sudo mv $logPath$logTemp $archivePath$archive
-sudo chown pi $archivePath$archive
+sudo chown skywatch $archivePath$archive
 gzip $archivePath$archive
 
 sudo rm $logPath$logName
 sudo touch $logPath$logName
-sudo chown pi $logPath$logName
+sudo chown skywatch $logPath$logName
 sudo systemctl start skywatch.service
