@@ -7,7 +7,7 @@ import busio
 
 
 # Initialise the bme280
-address = "0x77"
+address = "0x76"
 from adafruit_bme280 import basic as adafruit_bme280
 i2c = board.I2C()  # uses board.SCL and board.SDA
 decAddress = int(address, 16)
